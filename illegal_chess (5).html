@@ -1,0 +1,3079 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#181715">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Illegal Chess">
+    <meta name="application-name" content="Illegal Chess">
+    <link id="faviconLink" rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%238bc353'/%3E%3Cstop offset='100%25' stop-color='%234d7c1f'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='16' fill='url(%23g)'/%3E%3Cpath d='M14 48h36v6H14zM12 20l10 10 10-14 10 14 10-10-5 24H17z' fill='%23fff'/%3E%3Cpolygon points='34 6 24 22 32 22 29 36 41 18 33 18' fill='%23fbbf24'/%3E%3C/svg%3E">
+    <link id="pwaManifestLink" rel="manifest" href="">
+    <title>Illegal Chess — Grandmaster Edition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Montserrat:wght@700;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+    
+    <script>
+        if (typeof tailwind !== 'undefined') {
+            tailwind.config = {
+                darkMode: 'class',
+                theme: {
+                    extend: {
+                        colors: {
+                            chessBg: '#262522',
+                            chessPanel: '#1f1e1b',
+                            chessDark: '#161513',
+                            chessGreen: '#81b64c',
+                            chessGreenHover: '#95c95e',
+                            boardLight: '#ebecd0',
+                            boardDark: '#739552'
+                        },
+                        fontFamily: {
+                            sans: ['Inter', 'sans-serif'],
+                            display: ['Montserrat', 'sans-serif'],
+                            mono: ['JetBrains Mono', 'monospace']
+                        }
+                    }
+                }
+            };
+        }
+    </script>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+        }
+        html, body {
+            width: 100vw;
+            height: 100vh;
+            height: 100dvh;
+            margin: 0;
+            padding: 0;
+            background-color: #302e2b;
+            color: #ffffff;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            overflow: hidden;
+            overscroll-behavior: none;
+            padding-top: env(safe-area-inset-top);
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-track { background: #21201d; }
+        ::-webkit-scrollbar-thumb { background: #454340; border-radius: 3px; }
+
+        /* Authentic Chess.com 3D Bevel Buttons */
+        .btn-green {
+            background-color: #81b64c;
+            border-bottom: 3px solid #537133;
+            color: #ffffff;
+            transition: background-color 0.12s ease, transform 0.08s ease;
+        }
+        .btn-green:hover:not(:disabled) { background-color: #95bb4a; }
+        .btn-green:active:not(:disabled) { transform: translateY(1px); border-bottom-width: 2px; }
+
+        .btn-dark {
+            background-color: #3c3a37;
+            border-bottom: 3px solid #262522;
+            color: #c3c2c1;
+            transition: background-color 0.12s ease, color 0.12s ease, transform 0.08s ease;
+        }
+        .btn-dark:hover:not(:disabled) { background-color: #4b4845; color: #ffffff; }
+        .btn-dark:active:not(:disabled) { transform: translateY(1px); border-bottom-width: 2px; }
+
+        /* 12 Selectable Board Themes */
+        .theme-classic .sq-light    { background-color: #ebecd0; --coord-color: #739552; }
+        .theme-classic .sq-dark     { background-color: #739552; --coord-color: #ebecd0; }
+
+        .theme-wood .sq-light       { background-color: #f0d9b5; --coord-color: #b58863; }
+        .theme-wood .sq-dark        { background-color: #b58863; --coord-color: #f0d9b5; }
+
+        .theme-ice .sq-light        { background-color: #e0f2fe; --coord-color: #0284c7; }
+        .theme-ice .sq-dark         { background-color: #38bdf8; --coord-color: #e0f2fe; }
+
+        .theme-arcane .sq-light     { background-color: #ede9fe; --coord-color: #6d28d9; }
+        .theme-arcane .sq-dark      { background-color: #7c3aed; --coord-color: #ede9fe; }
+
+        .theme-obsidian .sq-light   { background-color: #94a3b8; --coord-color: #1e293b; }
+        .theme-obsidian .sq-dark    { background-color: #334155; --coord-color: #cbd5e1; }
+
+        .theme-ocean .sq-light      { background-color: #dee3e6; --coord-color: #4b7399; }
+        .theme-ocean .sq-dark       { background-color: #4b7399; --coord-color: #dee3e6; }
+
+        .theme-crimson .sq-light    { background-color: #fee2e2; --coord-color: #991b1b; }
+        .theme-crimson .sq-dark     { background-color: #b91c1c; --coord-color: #fee2e2; }
+
+        .theme-emerald .sq-light    { background-color: #d1fae5; --coord-color: #065f46; }
+        .theme-emerald .sq-dark     { background-color: #059669; --coord-color: #d1fae5; }
+
+        .theme-cyber .sq-light      { background-color: #2e1065; --coord-color: #22d3ee; }
+        .theme-cyber .sq-dark       { background-color: #0f172a; --coord-color: #f43f5e; }
+
+        .theme-sand .sq-light       { background-color: #fef3c7; --coord-color: #92400e; }
+        .theme-sand .sq-dark        { background-color: #d97706; --coord-color: #fef3c7; }
+
+        .theme-bubblegum .sq-light  { background-color: #fce7f3; --coord-color: #be185d; }
+        .theme-bubblegum .sq-dark   { background-color: #ec4899; --coord-color: #fce7f3; }
+
+        .theme-marble .sq-light     { background-color: #f8fafc; --coord-color: #475569; }
+        .theme-marble .sq-dark      { background-color: #64748b; --coord-color: #f8fafc; }
+
+        /* Full-Screen Chess.com Board Sizing */
+        .board-viewport-box {
+            --board-size: min(calc(100vw - 24px), calc(100dvh - 268px));
+            width: var(--board-size);
+            height: var(--board-size);
+        }
+        .player-bar-width {
+            --board-size: min(calc(100vw - 24px), calc(100dvh - 268px));
+            width: calc(var(--board-size) + 20px);
+        }
+
+        @media (min-width: 1024px) {
+            .board-viewport-box {
+                --board-size: min(calc(100dvh - 92px), calc(100vw - 470px));
+            }
+            .player-bar-width {
+                --board-size: min(calc(100dvh - 92px), calc(100vw - 470px));
+                width: calc(var(--board-size) + 24px);
+            }
+        }
+
+        .chess-board {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            grid-template-rows: repeat(8, 1fr);
+            width: 100%;
+            height: 100%;
+            border-radius: 4px;
+            overflow: hidden;
+            box-shadow: 0 6px 24px rgba(0, 0, 0, 0.55);
+            position: relative;
+            touch-action: none;
+        }
+
+        .chess-square {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            touch-action: none;
+        }
+
+        .coord-rank {
+            position: absolute;
+            top: 3px;
+            left: 4px;
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--coord-color);
+            line-height: 1;
+            pointer-events: none;
+            z-index: 5;
+        }
+        .coord-file {
+            position: absolute;
+            bottom: 3px;
+            right: 4px;
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--coord-color);
+            line-height: 1;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .sq-selected { background-color: rgba(255, 255, 51, 0.5) !important; }
+        .sq-last-move { background-color: rgba(245, 246, 130, 0.5) !important; }
+        .sq-drag-hover {
+            box-shadow: inset 0 0 0 4px rgba(255, 255, 255, 0.75) !important;
+        }
+        .piece-dragging-source {
+            opacity: 0.3 !important;
+        }
+        .sq-king-danger {
+            background: radial-gradient(circle, rgba(239,68,68,0.85) 0%, rgba(185,28,28,0.45) 75%) !important;
+        }
+        .sq-spell-target {
+            box-shadow: inset 0 0 0 3px #81b64c, inset 0 0 14px rgba(129, 182, 76, 0.75);
+            animation: pulseTarget 1.1s infinite ease-in-out;
+        }
+
+        @keyframes pulseTarget {
+            0%, 100% { box-shadow: inset 0 0 0 3px #81b64c, inset 0 0 10px rgba(129, 182, 76, 0.45); }
+            50% { box-shadow: inset 0 0 0 4px #b2e07c, inset 0 0 18px rgba(129, 182, 76, 0.9); }
+        }
+
+        .legal-dot {
+            width: 30%;
+            height: 30%;
+            border-radius: 50%;
+            background-color: rgba(0, 0, 0, 0.18);
+            pointer-events: none;
+            z-index: 15;
+        }
+        .legal-capture-ring {
+            position: absolute;
+            inset: 0;
+            border: 5px solid rgba(0, 0, 0, 0.18);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 15;
+        }
+
+        .chess-piece-img {
+            width: 95%;
+            height: 95%;
+            max-width: 95%;
+            max-height: 95%;
+            z-index: 10;
+            object-fit: contain;
+            pointer-events: none;
+            transition: transform 0.06s ease;
+        }
+
+        .graveyard-piece-icon {
+            width: 16px !important;
+            height: 16px !important;
+            max-width: 16px !important;
+            max-height: 16px !important;
+            object-fit: contain;
+            pointer-events: none;
+            opacity: 0.92;
+            flex-shrink: 0;
+            margin-left: -3px;
+        }
+
+        .floating-drag-piece {
+            position: fixed;
+            width: 74px !important;
+            height: 74px !important;
+            max-width: 74px !important;
+            max-height: 74px !important;
+            pointer-events: none !important;
+            z-index: 9999;
+            transform: translate(-50%, -62%) scale(1.12);
+            filter: drop-shadow(0 10px 16px rgba(0,0,0,0.55));
+        }
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-track { background: #141311; }
+        ::-webkit-scrollbar-thumb { background: #3a3834; border-radius: 4px; }
+
+        .btn-green {
+            background: linear-gradient(180deg, #8bc353 0%, #73a63f 100%);
+            box-shadow: 0 2px 0 #486b24, inset 0 1px 0 rgba(255,255,255,0.25);
+            transition: all 0.12s ease;
+        }
+        .btn-green:hover:not(:disabled) { filter: brightness(1.08); }
+        .btn-green:active:not(:disabled) { transform: translateY(1px); box-shadow: 0 1px 0 #486b24; }
+
+        .btn-dark {
+            background: linear-gradient(180deg, #383633 0%, #262421 100%);
+            box-shadow: 0 2px 0 #121110, inset 0 1px 0 rgba(255,255,255,0.08);
+            transition: all 0.12s ease;
+        }
+        .btn-dark:hover:not(:disabled) { background: linear-gradient(180deg, #42403c 0%, #2e2c28 100%); }
+        .btn-dark:active:not(:disabled) { transform: translateY(1px); box-shadow: 0 1px 0 #121110; }
+
+        /* 12 Selectable Board Themes */
+        .theme-classic .sq-light    { background-color: #ebecd0; --coord-color: #739552; }
+        .theme-classic .sq-dark     { background-color: #739552; --coord-color: #ebecd0; }
+
+        .theme-wood .sq-light       { background-color: #f0d9b5; --coord-color: #b58863; }
+        .theme-wood .sq-dark        { background-color: #b58863; --coord-color: #f0d9b5; }
+
+        .theme-ice .sq-light        { background-color: #e0f2fe; --coord-color: #0284c7; }
+        .theme-ice .sq-dark         { background-color: #38bdf8; --coord-color: #e0f2fe; }
+
+        .theme-arcane .sq-light     { background-color: #ede9fe; --coord-color: #6d28d9; }
+        .theme-arcane .sq-dark      { background-color: #7c3aed; --coord-color: #ede9fe; }
+
+        .theme-obsidian .sq-light   { background-color: #94a3b8; --coord-color: #1e293b; }
+        .theme-obsidian .sq-dark    { background-color: #334155; --coord-color: #cbd5e1; }
+
+        .theme-ocean .sq-light      { background-color: #dee3e6; --coord-color: #4b7399; }
+        .theme-ocean .sq-dark       { background-color: #4b7399; --coord-color: #dee3e6; }
+
+        .theme-crimson .sq-light    { background-color: #fee2e2; --coord-color: #991b1b; }
+        .theme-crimson .sq-dark     { background-color: #b91c1c; --coord-color: #fee2e2; }
+
+        .theme-emerald .sq-light    { background-color: #d1fae5; --coord-color: #065f46; }
+        .theme-emerald .sq-dark     { background-color: #059669; --coord-color: #d1fae5; }
+
+        .theme-cyber .sq-light      { background-color: #2e1065; --coord-color: #22d3ee; }
+        .theme-cyber .sq-dark       { background-color: #0f172a; --coord-color: #f43f5e; }
+
+        .theme-sand .sq-light       { background-color: #fef3c7; --coord-color: #92400e; }
+        .theme-sand .sq-dark        { background-color: #d97706; --coord-color: #fef3c7; }
+
+        .theme-bubblegum .sq-light  { background-color: #fce7f3; --coord-color: #be185d; }
+        .theme-bubblegum .sq-dark   { background-color: #ec4899; --coord-color: #fce7f3; }
+
+        .theme-marble .sq-light     { background-color: #f8fafc; --coord-color: #475569; }
+        .theme-marble .sq-dark      { background-color: #64748b; --coord-color: #f8fafc; }
+
+        /* Adaptive Board Sizing for Android Portrait & Desktop Landscape */
+        .board-viewport-box {
+            --board-size: min(calc(100vw - 26px), calc(100dvh - 296px));
+            width: var(--board-size);
+            height: var(--board-size);
+        }
+        .player-bar-width {
+            --board-size: min(calc(100vw - 26px), calc(100dvh - 296px));
+            width: calc(var(--board-size) + 18px);
+        }
+
+
+        .theme-ice .sq-light { background-color: #e0f2fe; --coord-color: #0284c7; }
+        .theme-ice .sq-dark  { background-color: #38bdf8; --coord-color: #e0f2fe; }
+
+        .theme-arcane .sq-light { background-color: #ede9fe; --coord-color: #6d28d9; }
+        .theme-arcane .sq-dark  { background-color: #7c3aed; --coord-color: #ede9fe; }
+
+        .theme-obsidian .sq-light { background-color: #94a3b8; --coord-color: #1e293b; }
+        .theme-obsidian .sq-dark  { background-color: #334155; --coord-color: #cbd5e1; }
+
+        /* Adaptive Board Sizing for Android Portrait & Desktop Landscape */
+        .board-viewport-box {
+            --board-size: min(calc(100vw - 26px), calc(100dvh - 292px));
+            width: var(--board-size);
+            height: var(--board-size);
+        }
+        .player-bar-width {
+            --board-size: min(calc(100vw - 26px), calc(100dvh - 292px));
+            width: calc(var(--board-size) + 18px);
+        }
+
+        @media (min-width: 1024px) {
+            .board-viewport-box {
+                --board-size: min(calc(100dvh - 108px), calc(100vw - 450px));
+            }
+            .player-bar-width {
+                --board-size: min(calc(100dvh - 108px), calc(100vw - 450px));
+                width: calc(var(--board-size) + 22px);
+            }
+        }
+
+        .chess-board {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            grid-template-rows: repeat(8, 1fr);
+            width: 100%;
+            height: 100%;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 14px 36px rgba(0, 0, 0, 0.72), 0 0 0 2px rgba(255,255,255,0.08);
+            position: relative;
+            touch-action: none;
+        }
+
+        .chess-square {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            touch-action: none;
+        }
+
+        .coord-rank {
+            position: absolute;
+            top: 2px;
+            left: 3px;
+            font-size: 9px;
+            font-weight: 800;
+            color: var(--coord-color);
+            line-height: 1;
+            pointer-events: none;
+            z-index: 5;
+        }
+        .coord-file {
+            position: absolute;
+            bottom: 2px;
+            right: 3px;
+            font-size: 9px;
+            font-weight: 800;
+            color: var(--coord-color);
+            line-height: 1;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .sq-selected { background-color: rgba(255, 255, 51, 0.6) !important; }
+        .sq-last-move { background-color: rgba(245, 246, 130, 0.48) !important; }
+        .sq-drag-hover {
+            box-shadow: inset 0 0 0 3px #ffffff, inset 0 0 14px rgba(129, 182, 76, 0.85) !important;
+        }
+        .piece-dragging-source {
+            opacity: 0.32 !important;
+            transform: scale(0.9);
+        }
+        .sq-king-danger {
+            background: radial-gradient(circle, rgba(239,68,68,0.85) 0%, rgba(185,28,28,0.45) 75%) !important;
+            box-shadow: inset 0 0 12px #ef4444;
+        }
+        .sq-spell-target {
+            box-shadow: inset 0 0 0 3px #a855f7, inset 0 0 16px rgba(168, 85, 247, 0.7);
+            animation: pulseTarget 1.1s infinite ease-in-out;
+        }
+
+        @keyframes pulseTarget {
+            0%, 100% { box-shadow: inset 0 0 0 3px #a855f7, inset 0 0 10px rgba(168, 85, 247, 0.45); }
+            50% { box-shadow: inset 0 0 0 4px #e9d5ff, inset 0 0 20px rgba(192, 132, 252, 0.9); }
+        }
+
+        .legal-dot {
+            width: 28%;
+            height: 28%;
+            border-radius: 50%;
+            background-color: rgba(0, 0, 0, 0.24);
+            pointer-events: none;
+            z-index: 15;
+        }
+        .legal-capture-ring {
+            position: absolute;
+            inset: 5%;
+            border: 4px solid rgba(220, 38, 38, 0.65);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 15;
+        }
+
+        .chess-piece-img {
+            width: 92%;
+            height: 92%;
+            max-width: 92%;
+            max-height: 92%;
+            z-index: 10;
+            object-fit: contain;
+            pointer-events: none;
+            transition: transform 0.08s ease;
+            filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.45));
+        }
+
+        .graveyard-piece-icon {
+            width: 14px !important;
+            height: 14px !important;
+            max-width: 14px !important;
+            max-height: 14px !important;
+            object-fit: contain;
+            pointer-events: none;
+            opacity: 0.9;
+            flex-shrink: 0;
+        }
+
+        .floating-drag-piece {
+            position: fixed;
+            width: 66px !important;
+            height: 66px !important;
+            max-width: 66px !important;
+            max-height: 66px !important;
+            pointer-events: none !important;
+            z-index: 9999;
+            transform: translate(-50%, -68%) scale(1.15);
+            filter: drop-shadow(0 14px 20px rgba(0,0,0,0.7));
+        }
+
+        /* Status Overlays on Squares */
+        .status-shield {
+            position: absolute;
+            inset: 3px;
+            border: 2.5px solid #38bdf8;
+            border-radius: 50%;
+            box-shadow: 0 0 12px rgba(56, 189, 248, 0.75), inset 0 0 8px rgba(56, 189, 248, 0.4);
+            pointer-events: none;
+            z-index: 14;
+        }
+        .status-frozen {
+            position: absolute;
+            inset: 2px;
+            background: rgba(56, 189, 248, 0.32);
+            border: 2px solid #7dd3fc;
+            border-radius: 5px;
+            pointer-events: none;
+            z-index: 14;
+        }
+        .status-ghost {
+            position: absolute;
+            bottom: 2px;
+            left: 2px;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #a855f7;
+            color: #fff;
+            font-size: 8px;
+            font-weight: 900;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 16;
+            box-shadow: 0 0 6px #a855f7;
+        }
+        .status-poison {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            background: #22c55e;
+            color: #052e16;
+            font-size: 9px;
+            font-weight: 900;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 16;
+            box-shadow: 0 0 6px #22c55e;
+        }
+        .status-mark {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            background: #ef4444;
+            color: #fff;
+            font-size: 9px;
+            font-weight: 900;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 16;
+            box-shadow: 0 0 8px #ef4444;
+        }
+        .status-wall {
+            position: absolute;
+            inset: 6%;
+            background: linear-gradient(145deg, #64748b, #334155);
+            border: 2px solid #cbd5e1;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #f8fafc;
+            z-index: 12;
+            box-shadow: inset 0 2px 4px rgba(255,255,255,0.25), 0 4px 10px rgba(0,0,0,0.6);
+        }
+        .status-trap {
+            position: absolute;
+            bottom: 3px;
+            left: 3px;
+            width: 16px;
+            height: 16px;
+            border-radius: 4px;
+            background: rgba(245, 158, 11, 0.9);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 9px;
+            font-weight: 900;
+            z-index: 12;
+            box-shadow: 0 0 6px rgba(245, 158, 11, 0.7);
+        }
+        .status-mine {
+            position: absolute;
+            bottom: 3px;
+            right: 3px;
+            width: 16px;
+            height: 16px;
+            border-radius: 4px;
+            background: rgba(239, 68, 68, 0.92);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 9px;
+            font-weight: 900;
+            z-index: 12;
+            box-shadow: 0 0 6px rgba(239, 68, 68, 0.75);
+        }
+        .fx-burst-ring {
+            position: absolute;
+            inset: 4px;
+            border: 3px solid #38bdf8;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 25;
+            animation: burstExpand 0.48s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        @keyframes burstExpand {
+            0% { transform: scale(0.35); opacity: 1; }
+            100% { transform: scale(1.45); opacity: 0; }
+        }
+
+        /* Rarity Card Accents (Clean Chess.com Dark Cards) */
+        @keyframes cardSpawnFlash {
+            0% { opacity: 0; transform: translateY(6px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+        .spell-card-spawn {
+            animation: cardSpawnFlash 0.22s ease-out forwards;
+        }
+
+        /* Right-Click Spell Inspector Fly-Out Animation */
+        @keyframes spellInspectFlyIn {
+            0% {
+                opacity: 0;
+                transform: perspective(900px) translateY(36px) scale(0.72) rotateX(18deg);
+            }
+            65% {
+                opacity: 1;
+                transform: perspective(900px) translateY(-4px) scale(1.03) rotateX(-2deg);
+            }
+            100% {
+                opacity: 1;
+                transform: perspective(900px) translateY(0) scale(1) rotateX(0deg);
+            }
+        }
+        @keyframes spellCrestPulse {
+            0%, 100% { transform: scale(1); filter: brightness(1); }
+            50% { transform: scale(1.06); filter: brightness(1.2); }
+        }
+        .spell-inspect-card-anim {
+            animation: spellInspectFlyIn 0.34s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+            transform-origin: center bottom;
+        }
+        .spell-crest-anim {
+            animation: spellCrestPulse 2.4s infinite ease-in-out;
+        }
+        .inspect-glow-common {
+            box-shadow: 0 24px 60px rgba(0,0,0,0.85), 0 0 35px rgba(148, 163, 184, 0.25);
+            border-color: rgba(148, 163, 184, 0.45);
+        }
+        .inspect-glow-rare {
+            box-shadow: 0 24px 60px rgba(0,0,0,0.85), 0 0 42px rgba(56, 189, 248, 0.35);
+            border-color: rgba(56, 189, 248, 0.55);
+        }
+        .inspect-glow-epic {
+            box-shadow: 0 24px 60px rgba(0,0,0,0.85), 0 0 48px rgba(168, 85, 247, 0.42);
+            border-color: rgba(168, 85, 247, 0.6);
+        }
+        .inspect-glow-legendary {
+            box-shadow: 0 24px 65px rgba(0,0,0,0.9), 0 0 55px rgba(251, 191, 36, 0.5);
+            border-color: rgba(251, 191, 36, 0.75);
+        }
+        .rarity-common {
+            background: #2b2926;
+            border-color: #3d3b38;
+            border-top: 3px solid #94a3b8;
+        }
+        .rarity-rare {
+            background: #2b2926;
+            border-color: #3d3b38;
+            border-top: 3px solid #38bdf8;
+        }
+        .rarity-epic {
+            background: #2b2926;
+            border-color: #3d3b38;
+            border-top: 3px solid #a855f7;
+        }
+        .rarity-legendary {
+            background: linear-gradient(180deg, rgba(245, 158, 11, 0.14) 0%, #2b2926 100%);
+            border-color: rgba(245, 158, 11, 0.45);
+            border-top: 3px solid #fbbf24;
+        }
+
+        .mana-pip {
+            width: 5px;
+            height: 10px;
+            border-radius: 1.5px;
+            background: #21201d;
+            transition: all 0.2s ease;
+        }
+        .mana-pip.filled {
+            background: #81b64c;
+        }
+
+        /* Chess.com Zebra Move Table */
+        #moveHistoryTable tr:nth-child(odd) {
+            background-color: #2b2926;
+        }
+        #moveHistoryTable tr:nth-child(even) {
+            background-color: #262421;
+        }
+    </style>
+</head>
+<body class="h-screen w-screen overflow-hidden flex flex-col lg:flex-row select-none bg-[#302e2b]">
+
+    <!-- CHESS.COM LEFT NAVIGATION RAIL (Desktop) -->
+    <nav class="hidden lg:flex flex-col items-center justify-between w-[58px] h-full bg-[#21201d] border-r border-black/30 py-3 shrink-0 z-30">
+        <div class="flex flex-col items-center gap-3 w-full">
+            <!-- Chess.com Pawn Logo -->
+            <button onclick="toggleMainMenuModal(true)" class="w-10 h-10 rounded-lg bg-[#81b64c] hover:bg-[#95bb4a] flex items-center justify-center text-white shadow transition" title="Main Menu">
+                <svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M19 22H5v-2h14v2M17.16 8.26A4.96 4.96 0 0 0 15 4.18V4a3 3 0 0 0-6 0v.18a4.96 4.96 0 0 0-2.16 4.08c0 1.69.85 3.18 2.15 4.06L7 18h10l-1.99-5.68a4.98 4.98 0 0 0 2.15-4.06Z"/>
+                </svg>
+            </button>
+
+            <button onclick="toggleMainMenuModal(true)" class="w-11 py-2 rounded-lg hover:bg-white/5 flex flex-col items-center gap-1 text-[#c3c2c1] hover:text-white transition" title="Play Modes">
+                <svg class="w-5 h-5 text-[#81b64c]" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                <span class="text-[9px] font-bold">Play</span>
+            </button>
+
+            <button onclick="toggleBotModal(true)" class="w-11 py-2 rounded-lg hover:bg-white/5 flex flex-col items-center gap-1 text-[#c3c2c1] hover:text-white transition" title="Select Bot">
+                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/><line x1="8" y1="16" x2="8" y2="16"/><line x1="16" y1="16" x2="16" y2="16"/></svg>
+                <span class="text-[9px] font-bold">Bots</span>
+            </button>
+
+            <button onclick="toggleSpellbookModal(true)" class="w-11 py-2 rounded-lg hover:bg-white/5 flex flex-col items-center gap-1 text-[#c3c2c1] hover:text-white transition" title="40 Spells">
+                <svg class="w-5 h-5 text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                <span class="text-[9px] font-bold">Spells</span>
+            </button>
+
+            <button onclick="toggleThemeModal(true)" class="w-11 py-2 rounded-lg hover:bg-white/5 flex flex-col items-center gap-1 text-[#c3c2c1] hover:text-white transition" title="Board & Pieces">
+                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg>
+                <span class="text-[9px] font-bold">Themes</span>
+            </button>
+        </div>
+
+        <div class="flex flex-col items-center gap-2.5 w-full">
+            <button onclick="toggleLang()" id="langBtnDesktop" class="w-9 h-8 rounded bg-[#2b2926] hover:bg-[#3c3a37] text-[10px] font-extrabold text-[#c3c2c1] hover:text-white transition" title="Language">
+                EN
+            </button>
+            <button onclick="toggleSound()" class="w-9 h-8 rounded bg-[#2b2926] hover:bg-[#3c3a37] flex items-center justify-center text-[#c3c2c1] hover:text-white transition" title="Sound">
+                <span id="soundIconContainer"></span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- MOBILE HEADER BAR (Chess.com Mobile Style) -->
+    <header class="lg:hidden h-10 px-2.5 bg-[#21201d] border-b border-black/40 flex items-center justify-between shrink-0 z-20">
+        <div class="flex items-center gap-2 min-w-0">
+            <button onclick="toggleMainMenuModal(true)" class="flex items-center gap-1.5 active:scale-95">
+                <div class="w-6 h-6 rounded bg-[#81b64c] flex items-center justify-center text-white shrink-0">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M19 22H5v-2h14v2M17.16 8.26A4.96 4.96 0 0 0 15 4.18V4a3 3 0 0 0-6 0v.18a4.96 4.96 0 0 0-2.16 4.08c0 1.69.85 3.18 2.15 4.06L7 18h10l-1.99-5.68a4.98 4.98 0 0 0 2.15-4.06Z"/></svg>
+                </div>
+                <span class="font-display font-black text-xs text-white tracking-tight">Chess<span class="text-[#81b64c]">.illegal</span></span>
+            </button>
+            <span id="mobileModePill" onclick="toggleMainMenuModal(true)" class="cursor-pointer text-[9px] font-bold bg-[#3c3a37] text-[#c3c2c1] px-1.5 py-0.5 rounded uppercase shrink-0">Bot</span>
+        </div>
+        <div class="flex items-center gap-1 shrink-0">
+            <button onclick="toggleMainMenuModal(true)" class="px-2 py-1 rounded bg-[#3c3a37] text-[10px] font-bold text-white">Menu</button>
+            <button onclick="toggleThemeModal(true)" class="px-2 py-1 rounded bg-[#3c3a37] text-[10px] font-bold text-[#c3c2c1]">Themes</button>
+            <button onclick="toggleSpellbookModal(true)" class="px-2 py-1 rounded bg-[#3c3a37] text-[10px] font-bold text-amber-300">Spells</button>
+            <button onclick="toggleSound()" class="w-7 h-6 rounded bg-[#3c3a37] flex items-center justify-center text-[#c3c2c1]">
+                <span id="soundIconContainerMobile"></span>
+            </button>
+        </div>
+    </header>
+
+    <!-- MAIN CHESS.COM WORKSPACE -->
+    <main class="w-full flex-1 flex flex-col lg:flex-row items-center justify-between lg:justify-center gap-1 lg:gap-4 px-1.5 lg:px-5 py-1 lg:py-2 overflow-hidden">
+
+        <!-- CENTER STAGE: FULL-HEIGHT BOARD + PLAYER STRIPS -->
+        <div class="flex flex-col items-center justify-center gap-1 shrink-0">
+
+            <!-- TOP PLAYER BAR (Authentic Chess.com Player Strip) -->
+            <div class="player-bar-width h-9 lg:h-10 flex items-center justify-between px-0.5 shrink-0">
+                <div class="flex items-center gap-2 min-w-0">
+                    <img id="topAvatarImg" src="https://images.chesscomfiles.com/uploads/v1/user/38210352.05b53686.50x50.png" class="w-7 h-7 lg:w-8 lg:h-8 rounded object-cover bg-[#262421] shrink-0" alt="Avatar" onerror="this.src='https://placehold.co/32x32/262421/fff?text=AI'">
+                    <div class="flex items-center gap-1.5 min-w-0">
+                        <span id="topName" class="font-bold text-xs lg:text-[13px] text-white truncate">Archmage Ignis</span>
+                        <span id="topRating" class="text-[11px] font-medium text-[#989795] font-mono shrink-0">(2250)</span>
+                        <span id="topThinkingBadge" class="hidden text-[9px] font-bold bg-[#3c3a37] text-[#81b64c] px-1.5 py-0.5 rounded shrink-0">thinking...</span>
+                    </div>
+                    <div id="graveyardTop" class="flex items-center h-4 ml-2 overflow-hidden shrink-0"></div>
+                </div>
+
+                <!-- Chess.com Clock-Style Mana Box -->
+                <div class="flex items-center gap-2 shrink-0">
+                    <div id="topManaBar" class="hidden sm:flex items-center gap-0.5"></div>
+                    <div class="h-7 lg:h-8 px-2.5 rounded bg-[#262421] border border-black/30 flex items-center gap-1.5 shadow-inner">
+                        <span class="w-3 h-3 text-[#81b64c] inline-block" id="topManaIcon"></span>
+                        <span id="topManaText" class="font-mono font-bold text-xs lg:text-sm text-[#c3c2c1]">4/10</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- EVAL BAR + FULL-SCREEN CHESSBOARD -->
+            <div class="flex items-stretch gap-1.5 lg:gap-2 justify-center shrink-0">
+                <!-- Chess.com Evaluation Bar -->
+                <div class="w-3.5 lg:w-[18px] bg-[#f1f5f9] rounded-[3px] overflow-hidden flex flex-col relative shrink-0 shadow">
+                    <div id="evalBarBlack" class="bg-[#262421] w-full transition-all duration-300" style="height: 50%;"></div>
+                    <div id="evalBarWhite" class="bg-[#ebecd0] w-full flex-1 transition-all duration-300"></div>
+                    <span id="evalScoreText" class="absolute bottom-1 left-0 right-0 text-center text-[8px] font-extrabold text-[#262421] leading-none">0.0</span>
+                </div>
+
+                <div class="board-viewport-box relative flex items-center justify-center">
+                    <div id="chessBoard" class="chess-board theme-classic"></div>
+                    <div id="toastContainer" class="absolute top-3 left-1/2 -translate-x-1/2 z-40 pointer-events-none flex flex-col items-center gap-1 w-full max-w-xs px-3"></div>
+
+                    <!-- Spell Targeting Bar -->
+                    <div id="spellTargetingBar" class="hidden absolute bottom-3 left-3 right-3 bg-[#21201d]/95 backdrop-blur border border-[#81b64c] rounded-lg p-2.5 z-30 shadow-2xl flex items-center justify-between">
+                        <div class="flex items-center gap-2.5">
+                            <div id="targetingSpellIcon" class="w-7 h-7 rounded bg-[#81b64c]/20 border border-[#81b64c] flex items-center justify-center text-[#81b64c] shrink-0"></div>
+                            <div>
+                                <div id="targetingSpellName" class="font-bold text-xs text-white">Phase Teleport</div>
+                                <div id="targetingSpellPrompt" class="text-[10px] text-[#989795]">Click a highlighted square on the board</div>
+                            </div>
+                        </div>
+                        <button onclick="cancelSpellTargeting()" class="btn-dark text-[10px] font-bold px-3 py-1 rounded">Cancel</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- BOTTOM PLAYER BAR (Authentic Chess.com Player Strip) -->
+            <div class="player-bar-width h-9 lg:h-10 flex items-center justify-between px-0.5 shrink-0">
+                <div class="flex items-center gap-2 min-w-0">
+                    <img id="bottomAvatarImg" src="https://images.chesscomfiles.com/uploads/v1/user/11417592.bc097123.50x50.png" class="w-7 h-7 lg:w-8 lg:h-8 rounded object-cover bg-[#262421] shrink-0" alt="Avatar" onerror="this.src='https://placehold.co/32x32/262421/fff?text=You'">
+                    <div class="flex items-center gap-1.5 min-w-0">
+                        <span id="bottomName" class="font-bold text-xs lg:text-[13px] text-white truncate">You</span>
+                        <span id="bottomTurnBadge" class="text-[9px] font-bold bg-[#81b64c] text-white px-1.5 py-0.5 rounded shrink-0">YOUR TURN</span>
+                    </div>
+                    <div id="graveyardBottom" class="flex items-center h-4 ml-2 overflow-hidden shrink-0"></div>
+                </div>
+
+                <!-- Chess.com Clock-Style Mana Box -->
+                <div class="flex items-center gap-2 shrink-0">
+                    <div id="bottomManaBar" class="hidden sm:flex items-center gap-0.5"></div>
+                    <div class="h-7 lg:h-8 px-2.5 rounded bg-[#f1f5f9] flex items-center gap-1.5 shadow">
+                        <span class="w-3 h-3 text-[#537133] inline-block" id="bottomManaIcon"></span>
+                        <span id="bottomManaText" class="font-mono font-extrabold text-xs lg:text-sm text-[#262421]">4/10</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT SIDEBAR: AUTHENTIC CHESS.COM GAME PANEL (#262421) -->
+        <aside class="w-full lg:w-[370px] flex-1 lg:flex-none lg:h-[calc(100dvh-20px)] bg-[#262421] rounded-t-xl lg:rounded-lg shadow-2xl flex flex-col overflow-hidden min-h-0">
+
+            <!-- Desktop Top Mode Tabs (Chess.com Tab Header) -->
+            <div class="hidden lg:grid grid-cols-3 bg-[#21201d] border-b border-black/30 shrink-0">
+                <button id="modeBtnBot" onclick="switchMode('bot')" class="py-2.5 text-xs font-bold border-b-2 border-[#81b64c] text-white bg-[#262421] transition">Computer</button>
+                <button id="modeBtnLocal" onclick="switchMode('local')" class="py-2.5 text-xs font-bold border-b-2 border-transparent text-[#989795] hover:text-white transition">Pass & Play</button>
+                <button id="modeBtnP2P" onclick="switchMode('p2p')" class="py-2.5 text-xs font-bold border-b-2 border-transparent text-[#989795] hover:text-white transition">Play a Friend</button>
+            </div>
+
+            <!-- MOBILE TABS -->
+            <div class="lg:hidden grid grid-cols-3 bg-[#21201d] border-b border-black/30 shrink-0">
+                <button id="mobTabSpells" onclick="switchMobileTab('spells')" class="py-1.5 text-[11px] font-bold border-b-2 border-[#81b64c] text-white bg-[#262421]">Spells (3)</button>
+                <button id="mobTabMoves" onclick="switchMobileTab('moves')" class="py-1.5 text-[11px] font-bold border-b-2 border-transparent text-[#989795]">Moves</button>
+                <button id="mobTabSettings" onclick="switchMobileTab('settings')" class="py-1.5 text-[11px] font-bold border-b-2 border-transparent text-[#989795]">Opponent</button>
+            </div>
+
+            <!-- SECTION 3: OPPONENT BAR / P2P LOBBY -->
+            <div id="panelSettingsSection" class="hidden lg:block px-3 py-2 bg-[#21201d]/60 border-b border-black/25 shrink-0">
+                <div id="botConfigSection">
+                    <div onclick="toggleBotModal(true)" class="cursor-pointer bg-[#2b2926] hover:bg-[#33312e] rounded-md p-2 flex items-center justify-between transition">
+                        <div class="flex items-center gap-2.5 min-w-0">
+                            <img id="selectedBotAvatar" src="https://images.chesscomfiles.com/uploads/v1/user/38210352.05b53686.50x50.png" class="w-8 h-8 rounded object-cover shrink-0" onerror="this.src='https://placehold.co/32x32/383633/fff?text=AI'">
+                            <div class="min-w-0">
+                                <div class="flex items-center gap-1.5">
+                                    <span id="selectedBotCardName" class="font-bold text-xs text-white truncate">Archmage Ignis</span>
+                                    <span id="selectedBotCardElo" class="text-[10px] font-mono text-[#989795]">(2250)</span>
+                                </div>
+                                <p id="selectedBotCardDesc" class="text-[10px] text-[#989795] truncate">Aggressive spellcaster grandmaster</p>
+                            </div>
+                        </div>
+                        <span class="text-[11px] font-bold text-[#81b64c] shrink-0 px-1.5">Change</span>
+                    </div>
+                </div>
+
+                <div id="p2pConfigSection" class="hidden space-y-1.5">
+                    <div class="flex gap-1.5">
+                        <button onclick="initHostRoom()" class="btn-green px-2.5 py-1 rounded text-[11px] font-bold whitespace-nowrap">Create Room</button>
+                        <input id="hostRoomCodeInput" type="text" readonly placeholder="Room Code..." class="flex-1 min-w-0 bg-[#1c1b19] border border-white/10 rounded px-2 py-1 text-[11px] font-mono text-[#81b64c] focus:outline-none">
+                        <button onclick="copyRoomCode()" class="btn-dark px-2.5 py-1 rounded text-[11px] font-bold">Copy</button>
+                    </div>
+                    <div class="flex gap-1.5">
+                        <input id="joinRoomCodeInput" type="text" placeholder="Paste Friend Code..." class="flex-1 min-w-0 bg-[#1c1b19] border border-white/10 rounded px-2 py-1 text-[11px] font-mono text-white focus:outline-none">
+                        <button onclick="joinFriendRoom()" class="btn-green px-3 py-1 rounded text-[11px] font-bold">Join</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION 2: CHESS.COM MOVE NOTATION TABLE -->
+            <div id="panelMovesSection" class="hidden lg:flex flex-col flex-1 min-h-0">
+                <div class="flex-1 min-h-0 overflow-y-auto">
+                    <table class="w-full text-xs font-mono border-collapse">
+                        <tbody id="moveHistoryTable"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- SECTION 1: ABILITY TRAY (Integrated into Chess.com Dock) -->
+            <div id="panelSpellsSection" class="p-2.5 bg-[#21201d] border-t border-black/30 shrink-0 flex-1 lg:flex-none flex flex-col justify-center">
+                <div class="flex items-center justify-between mb-1.5">
+                    <div class="flex items-center gap-1.5">
+                        <span id="lblOfferedSpells" class="text-[11px] font-bold text-[#c3c2c1]">Illegal Spells (<span id="handCountLabel">3</span>/3)</span>
+                        <span class="hidden sm:inline-block text-[9px] text-[#989795] bg-[#2b2926] px-1.5 py-0.5 rounded border border-white/5" title="Right-click any spell card to inspect details">ПКМ / RMB — Инфо</span>
+                        <button onclick="toggleSpellbookModal(true)" class="text-[10px] text-[#989795] hover:text-white underline">All 40</button>
+                    </div>
+                    <button onclick="rerollRandomCard()" class="btn-dark px-2.5 py-0.5 rounded text-[10px] font-bold">
+                        ↻ Reroll (1 Mana)
+                    </button>
+                </div>
+                <div id="playerHandContainer" class="grid grid-cols-3 gap-1.5 min-h-[104px]"></div>
+            </div>
+
+            <!-- CHESS.COM BOTTOM CONTROL BAR -->
+            <div class="hidden lg:grid p-2.5 bg-[#21201d] border-t border-black/30 grid-cols-4 gap-1.5 shrink-0">
+                <button onclick="restartCurrentMode()" class="col-span-2 btn-green py-2 px-3 rounded text-xs font-bold flex items-center justify-center gap-1.5">
+                    <span>New Game</span>
+                </button>
+                <button onclick="flipBoardView()" class="btn-dark py-2 px-2 rounded text-xs font-bold flex items-center justify-center" title="Flip Board">
+                    Flip
+                </button>
+                <button onclick="resignGame()" class="btn-dark py-2 px-2 rounded text-xs font-bold flex items-center justify-center" title="Resign">
+                    🏳️
+                </button>
+            </div>
+        </aside>
+    </main>
+
+    <!-- SPELLBOOK (GRIMOIRE) MODAL — 40 ABILITIES & DROP ODDS -->
+    <div id="spellbookModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 lg:p-6">
+        <div class="bg-[#21201d] border border-white/15 rounded-2xl max-w-4xl w-full max-h-[86dvh] overflow-hidden shadow-2xl flex flex-col">
+            <div class="px-4 py-3 bg-[#181715] border-b border-white/10 flex flex-wrap items-center justify-between gap-2 shrink-0">
+                <div>
+                    <h3 class="font-display font-black text-sm text-white tracking-wide">GRIMOIRE OF ILLEGAL SPELLS (40)</h3>
+                    <p class="text-[10px] text-neutral-400">Weighted Rarity Pool • Every turn offers 3 fresh cards</p>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <button onclick="filterSpellbook('all')" id="sbFilter_all" class="px-2.5 py-1 rounded text-[10px] font-extrabold bg-chessGreen text-white">All (40)</button>
+                    <button onclick="filterSpellbook('common')" id="sbFilter_common" class="px-2 py-1 rounded text-[10px] font-bold bg-slate-500/20 text-slate-300">Common</button>
+                    <button onclick="filterSpellbook('rare')" id="sbFilter_rare" class="px-2 py-1 rounded text-[10px] font-bold bg-sky-500/20 text-sky-300">Rare</button>
+                    <button onclick="filterSpellbook('epic')" id="sbFilter_epic" class="px-2 py-1 rounded text-[10px] font-bold bg-purple-500/20 text-purple-300">Epic</button>
+                    <button onclick="filterSpellbook('legendary')" id="sbFilter_legendary" class="px-2 py-1 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300">Legendary</button>
+                    <button onclick="toggleSpellbookModal(false)" class="ml-2 w-7 h-7 rounded-lg bg-white/10 hover:bg-white/20 text-white font-bold">✕</button>
+                </div>
+            </div>
+            <div id="spellbookGrid" class="p-3.5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 overflow-y-auto"></div>
+        </div>
+    </div>
+
+    <!-- RIGHT-CLICK EXPANDED SPELL INSPECTOR MODAL -->
+    <div id="spellInspectModal" onclick="closeSpellInspectModal(event)" class="fixed inset-0 bg-black/75 backdrop-blur-md z-[60] hidden flex items-center justify-center p-4">
+        <div id="spellInspectCardBox" onclick="event.stopPropagation()" class="spell-inspect-card-anim bg-[#21201d] border-2 rounded-2xl max-w-sm w-full overflow-hidden relative">
+            <!-- Top Rarity Banner Header -->
+            <div id="inspectHeaderBanner" class="px-5 pt-5 pb-4 bg-gradient-to-b from-white/10 to-transparent border-b border-white/10 flex items-start justify-between gap-3">
+                <div class="flex items-center gap-3.5">
+                    <div id="inspectIconBox" class="spell-crest-anim w-14 h-14 rounded-2xl flex items-center justify-center border-2 shadow-xl shrink-0"></div>
+                    <div>
+                        <div class="flex items-center gap-1.5">
+                            <span id="inspectRarityBadge" class="text-[9px] font-extrabold px-2 py-0.5 rounded uppercase tracking-wider">RARE</span>
+                            <span id="inspectDropBadge" class="text-[10px] font-mono font-bold text-[#989795]">2.5% Drop</span>
+                        </div>
+                        <h3 id="inspectSpellTitle" class="font-display font-black text-base text-white mt-1 leading-tight">Phase Teleport</h3>
+                    </div>
+                </div>
+                <button onclick="closeSpellInspectModal()" class="w-7 h-7 rounded-lg bg-white/10 hover:bg-white/20 text-neutral-300 hover:text-white font-bold text-xs flex items-center justify-center shrink-0">✕</button>
+            </div>
+
+            <!-- Main Body & Full Description -->
+            <div class="p-5 space-y-4">
+                <div class="bg-[#181715] border border-white/10 rounded-xl p-3.5">
+                    <div class="text-[10px] font-extrabold uppercase tracking-wider text-[#989795] mb-1" id="inspectDescHeading">Описание способности</div>
+                    <p id="inspectSpellDesc" class="text-xs text-white leading-relaxed font-medium"></p>
+                </div>
+
+                <!-- Tactical Telemetry Grid -->
+                <div class="grid grid-cols-3 gap-2 text-center">
+                    <div class="bg-[#2b2926] border border-white/5 rounded-xl p-2">
+                        <div class="text-[9px] font-bold text-[#989795] uppercase" id="inspectLblCost">Стоимость</div>
+                        <div id="inspectManaCost" class="text-sm font-mono font-black text-sky-400 mt-0.5">4 ⚡</div>
+                    </div>
+                    <div class="bg-[#2b2926] border border-white/5 rounded-xl p-2">
+                        <div class="text-[9px] font-bold text-[#989795] uppercase" id="inspectLblType">Наведение</div>
+                        <div id="inspectTargetType" class="text-[11px] font-extrabold text-white mt-0.5">2 клетки</div>
+                    </div>
+                    <div class="bg-[#2b2926] border border-white/5 rounded-xl p-2">
+                        <div class="text-[9px] font-bold text-[#989795] uppercase" id="inspectLblTargets">Целей сейчас</div>
+                        <div id="inspectValidCount" class="text-sm font-mono font-black text-[#81b64c] mt-0.5">8</div>
+                    </div>
+                </div>
+
+                <!-- Tactical Rule Note -->
+                <div class="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#2b2926]/70 border border-white/5 text-[10px] text-[#c3c2c1]">
+                    <span class="text-[#81b64c] font-black">⚡</span>
+                    <span id="inspectRuleHint">Бонусное действие: каст способности не тратит ваш обычный шахматный ход. Короля нельзя убить способностью.</span>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex items-center gap-2 pt-1">
+                    <button id="inspectCastBtn" class="flex-1 btn-green py-2.5 px-4 rounded-xl text-xs font-extrabold flex items-center justify-center gap-1.5">
+                        <span>⚡ Использовать</span>
+                    </button>
+                    <button onclick="closeSpellInspectModal()" class="btn-dark py-2.5 px-4 rounded-xl text-xs font-bold">
+                        Закрыть
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- BOT SELECTION MODAL -->
+    <div id="botModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-[#24221f] border border-white/15 rounded-2xl max-w-xl w-full overflow-hidden shadow-2xl flex flex-col">
+            <div class="px-5 py-3.5 bg-[#181715] border-b border-white/10 flex items-center justify-between">
+                <h3 class="font-display font-black text-sm text-white">SELECT AI CHAMPION</h3>
+                <button onclick="toggleBotModal(false)" class="text-neutral-400 hover:text-white font-bold">✕</button>
+            </div>
+            <div id="botCardsGrid" class="p-4 grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-[75vh] overflow-y-auto"></div>
+        </div>
+    </div>
+
+    <!-- VICTORY MODAL -->
+    <div id="victoryModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-[#24221f] border border-white/15 rounded-2xl max-w-sm w-full p-6 text-center shadow-2xl space-y-4">
+            <div class="w-12 h-12 rounded-2xl bg-chessGreen/20 border border-chessGreen mx-auto flex items-center justify-center text-chessGreen font-black text-xl">♛</div>
+            <h2 id="victoryTitle" class="font-display font-black text-xl text-white">WHITE WINS</h2>
+            <p id="victorySubtitle" class="text-xs text-neutral-300">Enemy King was captured.</p>
+            <div class="grid grid-cols-2 gap-2">
+                <button onclick="closeVictoryModal(); restartCurrentMode();" class="btn-green py-2.5 rounded-xl font-extrabold text-white text-xs tracking-wide">PLAY AGAIN</button>
+                <button onclick="closeVictoryModal(); toggleMainMenuModal(true);" class="btn-dark py-2.5 rounded-xl font-extrabold text-neutral-200 text-xs tracking-wide">MAIN MENU</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN MENU HUB MODAL (PLAY VS BOT, PASS & PLAY, ONLINE P2P, CUSTOMIZE) -->
+    <div id="mainMenuModal" class="fixed inset-0 bg-black/85 backdrop-blur-md z-50 hidden flex items-center justify-center p-3 lg:p-6">
+        <div class="bg-[#1e1d1a] border border-white/15 rounded-2xl max-w-2xl w-full max-h-[90dvh] overflow-y-auto shadow-2xl flex flex-col p-4 lg:p-6 space-y-4">
+            <div class="flex items-center justify-between border-b border-white/10 pb-3">
+                <div class="flex items-center gap-3">
+                    <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-[#8bc353] to-[#4d7c1f] flex items-center justify-center shadow-lg border border-white/25">
+                        <svg class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="currentColor"><path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/></svg>
+                    </div>
+                    <div>
+                        <h2 class="font-display font-black text-base lg:text-lg text-white tracking-wide">ILLEGAL CHESS</h2>
+                        <p class="text-[11px] text-neutral-400">40 Spells • Regicide Rules • 12 Board Themes • 10 Piece Sets</p>
+                    </div>
+                </div>
+                <button onclick="toggleMainMenuModal(false)" class="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-extrabold text-white">Resume ✕</button>
+            </div>
+
+            <!-- Mode Cards Grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                <div onclick="switchMode('bot'); toggleMainMenuModal(false);" class="cursor-pointer group rounded-xl border border-chessGreen/50 bg-gradient-to-b from-chessGreen/20 to-[#161513] p-3.5 hover:border-chessGreen transition flex flex-col justify-between">
+                    <div>
+                        <span class="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded bg-chessGreen text-white">Solo Campaign</span>
+                        <h3 class="font-display font-black text-sm text-white mt-2">Play vs Bot AI</h3>
+                        <p class="text-[11px] text-neutral-300 mt-1">Battle 5 unique AI Grandmasters with custom spell aggression.</p>
+                    </div>
+                    <button onclick="event.stopPropagation(); toggleMainMenuModal(false); toggleBotModal(true);" class="mt-3 w-full py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-[11px] font-extrabold text-chessGreen">Choose Bot Champion →</button>
+                </div>
+
+                <div onclick="switchMode('local'); toggleMainMenuModal(false);" class="cursor-pointer group rounded-xl border border-sky-400/40 bg-gradient-to-b from-sky-500/15 to-[#161513] p-3.5 hover:border-sky-400 transition flex flex-col justify-between">
+                    <div>
+                        <span class="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded bg-sky-500 text-white">2 Players</span>
+                        <h3 class="font-display font-black text-sm text-white mt-2">Pass & Play</h3>
+                        <p class="text-[11px] text-neutral-300 mt-1">Play with a friend on the same phone or computer screen.</p>
+                    </div>
+                    <span class="mt-3 inline-block text-[11px] font-extrabold text-sky-300">Start Local Duel →</span>
+                </div>
+
+                <div onclick="switchMode('p2p'); toggleMainMenuModal(false); switchMobileTab('settings');" class="cursor-pointer group rounded-xl border border-purple-400/40 bg-gradient-to-b from-purple-500/15 to-[#161513] p-3.5 hover:border-purple-400 transition flex flex-col justify-between">
+                    <div>
+                        <span class="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded bg-purple-600 text-white">Multiplayer</span>
+                        <h3 class="font-display font-black text-sm text-white mt-2">Online P2P Room</h3>
+                        <p class="text-[11px] text-neutral-300 mt-1">Create a room code and invite a friend from anywhere.</p>
+                    </div>
+                    <span class="mt-3 inline-block text-[11px] font-extrabold text-purple-300">Open Room Lobby →</span>
+                </div>
+            </div>
+
+            <!-- Secondary Quick Actions -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+                <button onclick="toggleMainMenuModal(false); toggleThemeModal(true);" class="btn-dark py-2.5 px-3 rounded-xl text-xs font-extrabold text-sky-300 flex items-center justify-center gap-1.5">
+                    <span>🎨 Themes & Pieces</span>
+                </button>
+                <button onclick="toggleMainMenuModal(false); toggleSpellbookModal(true);" class="btn-dark py-2.5 px-3 rounded-xl text-xs font-extrabold text-purple-300 flex items-center justify-center gap-1.5">
+                    <span>📖 Grimoire (40)</span>
+                </button>
+                <button onclick="toggleMainMenuModal(false); toggleBotModal(true);" class="btn-dark py-2.5 px-3 rounded-xl text-xs font-extrabold text-amber-300 flex items-center justify-center gap-1.5">
+                    <span>🤖 Select AI Bot</span>
+                </button>
+                <button onclick="toggleLang();" class="btn-dark py-2.5 px-3 rounded-xl text-xs font-extrabold text-neutral-200 flex items-center justify-center gap-1.5">
+                    <span>🌐 Language: EN/RU</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CUSTOMIZATION MODAL: 12 BOARD THEMES & 10 PIECE SETS -->
+    <div id="themeModal" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 lg:p-6">
+        <div class="bg-[#21201d] border border-white/15 rounded-2xl max-w-3xl w-full max-h-[88dvh] overflow-hidden shadow-2xl flex flex-col">
+            <div class="px-4 py-3 bg-[#181715] border-b border-white/10 flex items-center justify-between shrink-0">
+                <div>
+                    <h3 class="font-display font-black text-sm text-white">CUSTOMIZE BOARD & PIECES</h3>
+                    <p class="text-[10px] text-neutral-400">12 Board Color Themes • 10 Official Chess.com Piece Sets</p>
+                </div>
+                <button onclick="toggleThemeModal(false)" class="w-7 h-7 rounded-lg bg-white/10 hover:bg-white/20 text-white font-bold">✕</button>
+            </div>
+            <div class="p-4 overflow-y-auto space-y-4">
+                <div>
+                    <h4 class="text-xs font-extrabold uppercase tracking-wider text-neutral-300 mb-2">1. Select Piece Style (10 Sets)</h4>
+                    <div id="pieceSetsGrid" class="grid grid-cols-2 sm:grid-cols-5 gap-2"></div>
+                </div>
+                <div>
+                    <h4 class="text-xs font-extrabold uppercase tracking-wider text-neutral-300 mb-2">2. Select Board Theme (12 Palettes)</h4>
+                    <div id="boardThemesGrid" class="grid grid-cols-2 sm:grid-cols-4 gap-2"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const SVG_ICONS = {
+            mana: `<svg viewBox="0 0 24 24" fill="currentColor" class="w-full h-full"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>`,
+            soundOn: `<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>`,
+            soundOff: `<svg class="w-4 h-4 text-red-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>`,
+            blink: `<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3"/></svg>`,
+            sniper: `<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><line x1="22" y1="12" x2="17" y2="12"/><line x1="7" y1="12" x2="2" y2="12"/><line x1="12" y1="2" x2="12" y2="7"/><line x1="12" y1="17" x2="12" y2="22"/></svg>`,
+            shield: `<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`,
+            bolt: `<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`,
+            necro: `<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="9" cy="12" r="1"/><circle cx="15" cy="12" r="1"/><path d="M8 20v2h8v-2"/><path d="M12 2a8 8 0 0 0-8 8v7a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3v-7a8 8 0 0 0-8-8z"/></svg>`,
+            freeze: `<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="12" y1="2" x2="12" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/><line x1="19.07" y1="4.93" x2="4.93" y2="19.07"/></svg>`,
+            wall: `<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="3" y1="16" x2="21" y2="16"/><line x1="9" y1="4" x2="9" y2="10"/><line x1="15" y1="10" x2="15" y2="16"/></svg>`,
+            crown: `<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="2 4 5 16 19 16 22 4 16 10 12 4 8 10 2 4"/><line x1="4" y1="20" x2="20" y2="20"/></svg>`
+        };
+
+        const PIECE_SETS_CATALOG = [
+            { id: 'neo',      name: 'Neo Modern' },
+            { id: 'wood',     name: 'Classic Wood' },
+            { id: 'glass',    name: 'Crystal Glass' },
+            { id: 'icy_sea',  name: 'Icy Sea' },
+            { id: 'metal',    name: 'Heavy Metal' },
+            { id: 'gothic',   name: 'Gothic' },
+            { id: 'space',    name: 'Space Sci-Fi' },
+            { id: 'bases',    name: 'Tournament' },
+            { id: 'club',     name: 'Royal Club' },
+            { id: 'cases',    name: 'Cases' }
+        ];
+        let currentPieceSet = 'neo';
+
+        function getPieceImageUrl(color, type) {
+            return `https://images.chesscomfiles.com/chess-themes/pieces/${currentPieceSet}/150/${color}${type}.png`;
+        }
+
+        const BOARD_THEMES_CATALOG = [
+            { id: 'theme-classic',   name: 'Classic Green',  light: '#ebecd0', dark: '#739552' },
+            { id: 'theme-wood',      name: 'Walnut Wood',    light: '#f0d9b5', dark: '#b58863' },
+            { id: 'theme-ice',       name: 'Glacial Ice',    light: '#e0f2fe', dark: '#38bdf8' },
+            { id: 'theme-arcane',    name: 'Arcane Rift',    light: '#ede9fe', dark: '#7c3aed' },
+            { id: 'theme-obsidian',  name: 'Obsidian Slate', light: '#94a3b8', dark: '#334155' },
+            { id: 'theme-ocean',     name: 'Ocean Tournament',light:'#dee3e6', dark: '#4b7399' },
+            { id: 'theme-crimson',   name: 'Crimson Blood',  light: '#fee2e2', dark: '#b91c1c' },
+            { id: 'theme-emerald',   name: 'Emerald Casino', light: '#d1fae5', dark: '#059669' },
+            { id: 'theme-cyber',     name: 'Neon Cyber',     light: '#2e1065', dark: '#0f172a' },
+            { id: 'theme-sand',      name: 'Desert Gold',    light: '#fef3c7', dark: '#d97706' },
+            { id: 'theme-bubblegum', name: 'Bubblegum',      light: '#fce7f3', dark: '#ec4899' },
+            { id: 'theme-marble',    name: 'Marble Stone',   light: '#f8fafc', dark: '#64748b' }
+        ];
+
+        const PIECE_NAMES = { p: '', n: 'N', b: 'B', r: 'R', q: 'Q', k: 'K' };
+        const PIECE_VALUES = { p: 100, n: 320, b: 330, r: 500, q: 900, k: 20000 };
+        const BOARD_THEMES = BOARD_THEMES_CATALOG.map(t => t.id);
+        let currentThemeIdx = 0;
+        let currentLang = 'en';
+
+        // Clean standard Lichess audio samples
+        let soundEnabled = true;
+        const audioCache = {
+            move: new Audio('https://raw.githubusercontent.com/lichess-org/lila/master/public/sound/standard/Move.mp3'),
+            capture: new Audio('https://raw.githubusercontent.com/lichess-org/lila/master/public/sound/standard/Capture.mp3'),
+            spell: new Audio('https://raw.githubusercontent.com/lichess-org/lila/master/public/sound/standard/GenericNotify.mp3'),
+            victory: new Audio('https://raw.githubusercontent.com/lichess-org/lila/master/public/sound/standard/Victory.mp3')
+        };
+        Object.values(audioCache).forEach(a => { a.preload = 'auto'; a.volume = 0.55; });
+
+        function playSound(type) {
+            if (!soundEnabled) return;
+            const snd = audioCache[type];
+            if (snd) {
+                const clone = snd.cloneNode();
+                clone.volume = 0.55;
+                clone.play().catch(() => {});
+            }
+        }
+
+        function triggerHaptic(duration = 14) {
+            if (navigator.vibrate) {
+                try { navigator.vibrate(duration); } catch (e) {}
+            }
+        }
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            const icon = soundEnabled ? SVG_ICONS.soundOn : SVG_ICONS.soundOff;
+            const dEl = document.getElementById('soundIconContainer');
+            const mEl = document.getElementById('soundIconContainerMobile');
+            if (dEl) dEl.innerHTML = icon;
+            if (mEl) mEl.innerHTML = icon;
+        }
+
+        function cycleBoardTheme() {
+            const boardEl = document.getElementById('chessBoard');
+            if (!boardEl) return;
+            boardEl.classList.remove(BOARD_THEMES[currentThemeIdx]);
+            currentThemeIdx = (currentThemeIdx + 1) % BOARD_THEMES.length;
+            boardEl.classList.add(BOARD_THEMES[currentThemeIdx]);
+            triggerHaptic(10);
+        }
+
+        function setBoardThemeByIndex(idx) {
+            const boardEl = document.getElementById('chessBoard');
+            if (!boardEl) return;
+            boardEl.classList.remove(BOARD_THEMES[currentThemeIdx]);
+            currentThemeIdx = idx;
+            boardEl.classList.add(BOARD_THEMES[currentThemeIdx]);
+            triggerHaptic(10);
+            renderThemeModalContent();
+        }
+
+        function setPieceStyle(setId) {
+            currentPieceSet = setId;
+            triggerHaptic(10);
+            renderAll();
+            renderThemeModalContent();
+        }
+
+        function toggleMainMenuModal(show) {
+            const modal = document.getElementById('mainMenuModal');
+            if (!modal) return;
+            modal.classList.toggle('hidden', !show);
+        }
+
+        function toggleThemeModal(show) {
+            const modal = document.getElementById('themeModal');
+            if (!modal) return;
+            if (show) renderThemeModalContent();
+            modal.classList.toggle('hidden', !show);
+        }
+
+        function renderThemeModalContent() {
+            const pGrid = document.getElementById('pieceSetsGrid');
+            if (pGrid) {
+                pGrid.innerHTML = PIECE_SETS_CATALOG.map(s => `
+                    <div onclick="setPieceStyle('${s.id}')" class="cursor-pointer rounded-xl border p-2 flex flex-col items-center gap-1 transition ${currentPieceSet === s.id ? 'border-chessGreen bg-chessGreen/20' : 'border-white/10 bg-[#181715] hover:bg-white/5'}">
+                        <div class="flex items-center gap-1">
+                            <img src="https://images.chesscomfiles.com/chess-themes/pieces/${s.id}/150/wn.png" class="w-8 h-8 object-contain">
+                            <img src="https://images.chesscomfiles.com/chess-themes/pieces/${s.id}/150/bq.png" class="w-8 h-8 object-contain">
+                        </div>
+                        <span class="text-[10px] font-extrabold text-white">${s.name}</span>
+                    </div>
+                `).join('');
+            }
+
+            const bGrid = document.getElementById('boardThemesGrid');
+            if (bGrid) {
+                bGrid.innerHTML = BOARD_THEMES_CATALOG.map((t, idx) => `
+                    <div onclick="setBoardThemeByIndex(${idx})" class="cursor-pointer rounded-xl border p-2 flex items-center gap-2.5 transition ${currentThemeIdx === idx ? 'border-chessGreen bg-chessGreen/20' : 'border-white/10 bg-[#181715] hover:bg-white/5'}">
+                        <div class="w-8 h-8 rounded-lg overflow-hidden grid grid-cols-2 grid-rows-2 border border-white/20 shrink-0">
+                            <div style="background:${t.light}"></div>
+                            <div style="background:${t.dark}"></div>
+                            <div style="background:${t.dark}"></div>
+                            <div style="background:${t.light}"></div>
+                        </div>
+                        <span class="text-[11px] font-bold text-white truncate">${t.name}</span>
+                    </div>
+                `).join('');
+            }
+        }
+
+        function toggleLang() {
+            currentLang = currentLang === 'en' ? 'ru' : 'en';
+            const btn = document.getElementById('langBtnDesktop');
+            if (btn) btn.textContent = currentLang.toUpperCase();
+            renderAll();
+        }
+
+        function switchMobileTab(tab) {
+            const spellsSec = document.getElementById('panelSpellsSection');
+            const movesSec = document.getElementById('panelMovesSection');
+            const settingsSec = document.getElementById('panelSettingsSection');
+
+            const bSpells = document.getElementById('mobTabSpells');
+            const bMoves = document.getElementById('mobTabMoves');
+            const bSettings = document.getElementById('mobTabSettings');
+
+            spellsSec.classList.add('hidden');
+            movesSec.classList.add('hidden');
+            settingsSec.classList.add('hidden');
+
+            [bSpells, bMoves, bSettings].forEach(b => {
+                b.className = 'py-1.5 text-[11px] font-bold border-b-2 border-transparent text-[#989795] transition';
+            });
+
+            if (tab === 'spells') {
+                spellsSec.classList.remove('hidden');
+                bSpells.className = 'py-1.5 text-[11px] font-bold border-b-2 border-[#81b64c] text-white bg-[#262421] transition';
+            } else if (tab === 'moves') {
+                movesSec.classList.remove('hidden');
+                movesSec.classList.add('flex');
+                bMoves.className = 'py-1.5 text-[11px] font-bold border-b-2 border-[#81b64c] text-white bg-[#262421] transition';
+            } else if (tab === 'settings') {
+                settingsSec.classList.remove('hidden');
+                bSettings.className = 'py-1.5 text-[11px] font-bold border-b-2 border-[#81b64c] text-white bg-[#262421] transition';
+            }
+            triggerHaptic(10);
+        }
+
+        const RARITY_META = {
+            common:    { label: 'COMMON',    labelRu: 'ОБЫЧНАЯ',   badgeClass: 'bg-slate-500/25 text-slate-300',   cardClass: 'rarity-common' },
+            rare:      { label: 'RARE',      labelRu: 'РЕДКАЯ',    badgeClass: 'bg-sky-500/25 text-sky-300',       cardClass: 'rarity-rare' },
+            epic:      { label: 'EPIC',      labelRu: 'ЭПИК',      badgeClass: 'bg-purple-500/25 text-purple-300', cardClass: 'rarity-epic' },
+            legendary: { label: 'LEGENDARY', labelRu: 'ЛЕГЕНДА',   badgeClass: 'bg-amber-500/30 text-amber-300',   cardClass: 'rarity-legendary' }
+        };
+
+        // 40 UNIQUE ABILITIES DATABASE
+        const ABILITIES_DB = [
+            // COMMON (12 Spells, Weight: 40)
+            { id: 'shield',    name: 'Aegis Shield',    nameRu: 'Щит Эгиды',       cost: 2, rarity: 'common', weight: 40, icon: 'shield', steps: 1, desc: 'Shield a friendly piece for 2 turns.', descRu: 'Щит неуязвимости на свою фигуру (2 хода).' },
+            { id: 'sprint',    name: 'Pawn Sprint',     nameRu: 'Рывок Пешки',     cost: 2, rarity: 'common', weight: 40, icon: 'bolt',   steps: 1, desc: 'Advance a friendly Pawn up to 2 empty squares.', descRu: 'Продвинуть пешку на 2 пустые клетки вперед.' },
+            { id: 'wall',      name: 'Stone Wall',      nameRu: 'Каменная Стена',  cost: 2, rarity: 'common', weight: 40, icon: 'wall',   steps: 1, desc: 'Block an empty square with a stone wall (3t).', descRu: 'Возвести каменную стену на пустой клетке (3 хода).' },
+            { id: 'purify',    name: 'Purify',          nameRu: 'Очищение',        cost: 2, rarity: 'common', weight: 40, icon: 'shield', steps: 1, desc: 'Cleanse Freeze/Poison/Mark & grant 1t Shield.', descRu: 'Снять заморозку/яд/метку и дать щит (1 ход).' },
+            { id: 'mana',      name: 'Mana Surge',      nameRu: 'Прилив Маны',     cost: 2, rarity: 'common', weight: 40, icon: 'bolt',   steps: 0, desc: 'Spend 2 Mana to immediately gain +4 Mana.', descRu: 'Потратить 2 маны и сразу получить +4 маны.' },
+            { id: 'trap',      name: 'Bear Trap',       nameRu: 'Капкан',          cost: 2, rarity: 'common', weight: 40, icon: 'sniper', steps: 1, desc: 'Place a trap on an empty square (freezes 2t).', descRu: 'Поставить капкан на пустую клетку (заморозка 2х).' },
+            { id: 'sidestep',  name: 'Flank Shift',     nameRu: 'Шаг в Сторону',   cost: 2, rarity: 'common', weight: 40, icon: 'blink',  steps: 1, desc: 'Slide a friendly piece 1 square left or right.', descRu: 'Сдвинуть свою фигуру на 1 клетку влево/вправо.' },
+            { id: 'retreat',   name: 'Tactical Step',   nameRu: 'Шаг Назад',       cost: 2, rarity: 'common', weight: 40, icon: 'blink',  steps: 1, desc: 'Step a friendly piece 1 empty square backward.', descRu: 'Отступить своей фигурой на 1 клетку назад.' },
+            { id: 'smoke',     name: 'Smoke Bomb',      nameRu: 'Дымовая Завеса',  cost: 2, rarity: 'common', weight: 40, icon: 'shield', steps: 1, desc: 'Shield a friendly piece and adjacent horizontal allies (1t).', descRu: 'Щит на фигуру и соседей слева/справа на 1 ход.' },
+            { id: 'phalanx',   name: 'Pawn Phalanx',    nameRu: 'Строй Фаланги',   cost: 2, rarity: 'common', weight: 40, icon: 'shield', steps: 0, desc: 'Advance up to 3 friendly Pawns 1 square forward.', descRu: 'Продвинуть до 3 своих пешек на 1 клетку вперед.' },
+            { id: 'dispel',    name: 'Dispel Magic',    nameRu: 'Развеивание',     cost: 2, rarity: 'common', weight: 40, icon: 'bolt',   steps: 1, desc: 'Strip Shield & Ghost buff from an enemy piece.', descRu: 'Снять щит и призрачный прыжок с фигуры врага.' },
+            { id: 'escort',    name: 'Royal Guard',     nameRu: 'Королевский Щит', cost: 2, rarity: 'common', weight: 40, icon: 'crown',  steps: 0, desc: 'Grant your King and closest ally a 1-turn Shield.', descRu: 'Дать щит своему Королю и ближайшему союзнику.' },
+
+            // RARE (13 Spells, Weight: 22)
+            { id: 'freeze',    name: 'Cryo Freeze',     nameRu: 'Крио-Заморозка',  cost: 3, rarity: 'rare',   weight: 22, icon: 'freeze', steps: 1, desc: 'Freeze any non-King enemy piece for 2 turns.', descRu: 'Заморозить не-королевскую фигуру врага на 2 хода.' },
+            { id: 'poison',    name: 'Poison Blade',    nameRu: 'Ядовитый Клинок', cost: 3, rarity: 'rare',   weight: 22, icon: 'necro',  steps: 1, desc: 'Poison a non-King enemy: dies in 3 turns unless it captures.', descRu: 'Отравить фигуру врага: погибнет через 3 хода.' },
+            { id: 'ghost',     name: 'Phantom Leap',    nameRu: 'Прыжок Призрака', cost: 3, rarity: 'rare',   weight: 22, icon: 'blink',  steps: 1, desc: 'Grant a friendly piece permanent Knight-jump moves.', descRu: 'Дать своей фигуре способность прыгать как Конь.' },
+            { id: 'swap',      name: 'Soul Swap',       nameRu: 'Рокировка Душ',   cost: 3, rarity: 'rare',   weight: 22, icon: 'blink',  steps: 2, desc: 'Swap positions of any two friendly pieces.', descRu: 'Поменять местами любые две свои фигуры.' },
+            { id: 'sniper',    name: 'Sniper Shot',     nameRu: 'Выстрел Снайпера',cost: 4, rarity: 'rare',   weight: 22, icon: 'sniper', steps: 1, desc: 'Eliminate an enemy Pawn, Knight, or Bishop.', descRu: 'Уничтожить вражескую Пешку, Коня или Слона.' },
+            { id: 'draft',     name: 'Draft Infantry',  nameRu: 'Призыв Пехоты',   cost: 3, rarity: 'rare',   weight: 22, icon: 'shield', steps: 1, desc: 'Summon a new Pawn on your home pawn rank.', descRu: 'Призвать новую Пешку на своей стартовой линии.' },
+            { id: 'harvest',   name: 'Dark Ritual',     nameRu: 'Темный Ритуал',   cost: 1, rarity: 'rare',   weight: 22, icon: 'necro',  steps: 1, desc: 'Freeze your own non-King piece (2t) to gain +3 Mana.', descRu: 'Заморозить свою фигуру (2х) ради +3 маны.' },
+            { id: 'magnet',    name: 'Magnetic Pull',   nameRu: 'Магнитный Захват',cost: 3, rarity: 'rare',   weight: 22, icon: 'bolt',   steps: 1, desc: 'Pull a non-King enemy piece 1 empty square toward you.', descRu: 'Притянуть фигуру врага на 1 клетку к себе.' },
+            { id: 'shove',     name: 'Repulse Blast',   nameRu: 'Отталкивание',    cost: 3, rarity: 'rare',   weight: 22, icon: 'bolt',   steps: 1, desc: 'Push a non-King enemy piece 1 empty square backward & freeze 1t.', descRu: 'Оттолкнуть фигуру врага назад и заморозить (1х).' },
+            { id: 'cavalry',   name: 'Cavalry Charge',  nameRu: 'Атака Кавалерии', cost: 3, rarity: 'rare',   weight: 22, icon: 'shield', steps: 1, desc: 'Advance a friendly Knight or Bishop 2 empty squares forward & Shield.', descRu: 'Продвинуть Коня/Слона на 2 клетки вперед со щитом.' },
+            { id: 'frostnova', name: 'Frost Nova',      nameRu: 'Кольцо Льда',     cost: 4, rarity: 'rare',   weight: 22, icon: 'freeze', steps: 1, desc: 'Freeze all non-King enemy pieces adjacent to your chosen piece (2t).', descRu: 'Заморозить всех врагов вокруг вашей фигуры (2х).' },
+            { id: 'manadrain', name: 'Mana Drain',      nameRu: 'Похищение Маны',  cost: 2, rarity: 'rare',   weight: 22, icon: 'necro',  steps: 0, desc: 'Steal up to 2 Mana directly from your opponent.', descRu: 'Украсть до 2 кристаллов маны у противника.' },
+            { id: 'quicksand', name: 'Quicksand',       nameRu: 'Зыбучие Пески',   cost: 3, rarity: 'rare',   weight: 22, icon: 'wall',   steps: 0, desc: 'Freeze up to 2 random enemy Pawns for 2 turns.', descRu: 'Заморозить 2 случайные пешки врага на 2 хода.' },
+
+            // EPIC (10 Spells, Weight: 11)
+            { id: 'blink',     name: 'Phase Teleport',  nameRu: 'Фазовый Телепорт',cost: 4, rarity: 'epic',   weight: 11, icon: 'blink',  steps: 2, desc: 'Teleport a friendly piece to an empty square on your half.', descRu: 'Телепорт своей фигуры на пустую клетку своей половины.' },
+            { id: 'poly',      name: 'Polymorph',       nameRu: 'Полиморф',        cost: 4, rarity: 'epic',   weight: 11, icon: 'bolt',   steps: 1, desc: 'Transform an enemy Knight, Bishop, or Rook into a Pawn.', descRu: 'Превратить вражеского Коня, Слона или Ладью в Пешку.' },
+            { id: 'valkyrie',  name: 'Knighthood',      nameRu: 'Посвящение',      cost: 4, rarity: 'epic',   weight: 11, icon: 'crown',  steps: 1, desc: 'Immediately promote a friendly Pawn into a Knight.', descRu: 'Мгновенно превратить свою Пешку в Коня.' },
+            { id: 'recruit',   name: 'Mind Control',    nameRu: 'Контроль Разума', cost: 5, rarity: 'epic',   weight: 11, icon: 'necro',  steps: 1, desc: 'Convert an enemy Pawn to your side (frozen 1t).', descRu: 'Переманить вражескую Пешку на свою сторону.' },
+            { id: 'meteor',    name: 'Meteor Strike',   nameRu: 'Удар Метеора',    cost: 6, rarity: 'epic',   weight: 11, icon: 'sniper', steps: 1, desc: 'Destroy a non-King enemy piece & leave a Stone Wall.', descRu: 'Уничтожить фигуру врага и оставить Каменную Стену.' },
+            { id: 'clone',     name: 'Mirror Clone',    nameRu: 'Зеркальный Клон', cost: 5, rarity: 'epic',   weight: 11, icon: 'blink',  steps: 1, desc: 'Duplicate a friendly Knight or Bishop onto an adjacent square.', descRu: 'Клонировать своего Коня или Слона на соседнюю клетку.' },
+            { id: 'mine',      name: 'Hidden Mine',     nameRu: 'Скрытая Мина',    cost: 3, rarity: 'epic',   weight: 11, icon: 'sniper', steps: 1, desc: 'Plant an explosive mine on an empty square (Kings defuse it).', descRu: 'Установить взрывную мину на пустую клетку.' },
+            { id: 'mark',      name: 'Assassin Mark',   nameRu: 'Метка Убийцы',    cost: 4, rarity: 'epic',   weight: 11, icon: 'sniper', steps: 1, desc: 'Doom any non-King enemy piece to perish in 2 rounds.', descRu: 'Обречь фигуру врага на гибель через 2 хода.' },
+            { id: 'execute',   name: 'Shatter Execute', nameRu: 'Казнь Расколом',  cost: 3, rarity: 'epic',   weight: 11, icon: 'sniper', steps: 1, desc: 'Instantly destroy any Frozen or Poisoned enemy piece.', descRu: 'Мгновенно добить замороженную или отравленную фигуру.' },
+            { id: 'necro',     name: 'Necromancy',      nameRu: 'Некромантия',     cost: 5, rarity: 'epic',   weight: 11, icon: 'necro',  steps: 1, desc: 'Summon a Rook onto an empty square on your back rank.', descRu: 'Призвать Ладью на пустую клетку своей задней линии.' },
+
+            // LEGENDARY (5 Spells, Weight: 3, Cataclysm = 2)
+            { id: 'lightning', name: 'Chain Lightning', nameRu: 'Цепная Молния',   cost: 6, rarity: 'legendary', weight: 3, icon: 'bolt',  steps: 1, desc: 'Smite any non-King enemy piece & freeze adjacent enemies 1t.', descRu: 'Уничтожить фигуру врага и заморозить соседей (1х).' },
+            { id: 'timewarp',  name: 'Chrono Warp',     nameRu: 'Искажение Времени',cost: 7, rarity: 'legendary', weight: 3, icon: 'blink', steps: 0, desc: 'Your next standard chess move does not end your turn!', descRu: 'Следующий обычный ход фигурой не завершает ваш ход!' },
+            { id: 'archangel', name: 'Archangel Ascent',nameRu: 'Вознесение',      cost: 7, rarity: 'legendary', weight: 3, icon: 'crown', steps: 1, desc: 'Ascend a friendly Knight or Bishop into a shielded Queen!', descRu: 'Превратить своего Коня или Слона в Ферзя со щитом!' },
+            { id: 'armydead',  name: 'Army of the Dead',nameRu: 'Армия Мертвых',   cost: 6, rarity: 'legendary', weight: 3, icon: 'necro', steps: 0, desc: 'Summon 3 shielded Skeleton Pawns across your pawn rank!', descRu: 'Призвать 3 пешки со щитами на вашей пехотной линии!' },
+            { id: 'cataclysm', name: 'Grand Cataclysm', nameRu: 'Катаклизм',       cost: 10,rarity: 'legendary', weight: 2, icon: 'crown', steps: 0, desc: 'MEGA SPELL: Obliterate 2 non-King enemies, freeze army & summon Queen!', descRu: 'МЕГА-СПЕЛЛ: Уничтожить 2 врагов, заморозить армию и призвать Ферзя!' }
+        ];
+
+        // Precompute exact drop percentages
+        (function computeOdds() {
+            const totalW = ABILITIES_DB.reduce((acc, a) => acc + a.weight, 0);
+            ABILITIES_DB.forEach(a => {
+                a.dropPct = ((a.weight / totalW) * 100).toFixed(1);
+            });
+        })();
+
+        const BOT_PROFILES = {
+            squire:   { name: 'Squire Pip',       rating: '1100', desc: 'Cautious apprentice. Rarely casts spells.',      avatar: 'https://images.chesscomfiles.com/uploads/v1/user/11417592.bc097123.50x50.png', spellChance: 0.30, depthBonus: 0 },
+            tactician:{ name: 'Commander Vance',  rating: '1550', desc: 'Balanced positional commander.',                 avatar: 'https://images.chesscomfiles.com/uploads/v1/user/38210352.05b53686.50x50.png', spellChance: 0.55, depthBonus: 1 },
+            viper:    { name: 'Viper Shade',      rating: '1850', desc: 'Master of poison, traps, and assassinations.',  avatar: 'https://images.chesscomfiles.com/uploads/v1/user/11417592.bc097123.50x50.png', spellChance: 0.75, depthBonus: 1 },
+            archmage: { name: 'Archmage Ignis',   rating: '2250', desc: 'Aggressive spellcaster grandmaster.',            avatar: 'https://images.chesscomfiles.com/uploads/v1/user/38210352.05b53686.50x50.png', spellChance: 0.88, depthBonus: 2 },
+            magnus:   { name: 'Magnus Unbound',   rating: '2650', desc: 'Supreme deity of illegal chess tactics.',        avatar: 'https://images.chesscomfiles.com/uploads/v1/user/38210352.05b53686.50x50.png', spellChance: 0.96, depthBonus: 3 }
+        };
+
+        let gameState = {
+            board: [],
+            sqEffects: [],
+            turn: 'w',
+            mode: 'bot',
+            botKey: 'archmage',
+            myP2PColor: 'w',
+            boardFlipped: false,
+            mana: { w: 4, b: 4 },
+            hands: { w: [], b: [] },
+            graveyard: { w: [], b: [] },
+            selectedSq: null,
+            legalMoves: [],
+            activeSpell: null,
+            lastMove: null,
+            extraTurn: false,
+            gameOver: false,
+            movePairs: []
+        };
+
+        function drawWeightedAbility(excludeIds = []) {
+            let pool = ABILITIES_DB.filter(a => !excludeIds.includes(a.id));
+            if (pool.length === 0) pool = ABILITIES_DB;
+            const totalWeight = pool.reduce((sum, a) => sum + a.weight, 0);
+            let roll = Math.random() * totalWeight;
+            for (const item of pool) {
+                roll -= item.weight;
+                if (roll <= 0) return { ...item, uid: Math.random().toString(36).slice(2, 9) };
+            }
+            return { ...pool[0], uid: Math.random().toString(36).slice(2, 9) };
+        }
+
+        // Discard previous turn's cards and deal 3 fresh cards
+        function refreshTurnHand(color) {
+            const newHand = [];
+            for (let i = 0; i < 3; i++) {
+                const chosen = drawWeightedAbility(newHand.map(c => c.id));
+                newHand.push(chosen);
+            }
+            gameState.hands[color] = newHand;
+        }
+
+        function initBoardState() {
+            gameState.board = Array.from({ length: 8 }, () => Array(8).fill(null));
+            gameState.sqEffects = Array.from({ length: 8 }, () => Array.from({ length: 8 }, () => ({ wall: 0, trap: null, mine: null })));
+
+            const backRank = ['r', 'n', 'b', 'q', 'k', 'b', 'n', 'r'];
+            for (let c = 0; c < 8; c++) {
+                gameState.board[0][c] = { color: 'b', type: backRank[c], shield: 0, frozen: 0, poison: 0, mark: 0, ghost: false, moved: false };
+                gameState.board[1][c] = { color: 'b', type: 'p',         shield: 0, frozen: 0, poison: 0, mark: 0, ghost: false, moved: false };
+                gameState.board[6][c] = { color: 'w', type: 'p',         shield: 0, frozen: 0, poison: 0, mark: 0, ghost: false, moved: false };
+                gameState.board[7][c] = { color: 'w', type: backRank[c], shield: 0, frozen: 0, poison: 0, mark: 0, ghost: false, moved: false };
+            }
+
+            gameState.turn = 'w';
+            gameState.mana = { w: 4, b: 4 };
+            gameState.graveyard = { w: [], b: [] };
+            gameState.selectedSq = null;
+            gameState.legalMoves = [];
+            gameState.activeSpell = null;
+            gameState.lastMove = null;
+            gameState.extraTurn = false;
+            gameState.gameOver = false;
+            gameState.movePairs = [];
+
+            document.getElementById('spellTargetingBar')?.classList.add('hidden');
+            refreshTurnHand('w');
+            refreshTurnHand('b');
+            renderAll();
+        }
+
+        function getInteractiveColor() {
+            if (gameState.mode === 'bot') return 'w';
+            if (gameState.mode === 'p2p') return gameState.myP2PColor;
+            return gameState.turn;
+        }
+
+        function coordToAlgebraic(r, c) {
+            const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+            return files[c] + (8 - r);
+        }
+
+        function formatChessComNotation(piece, fromR, fromC, toR, toC, isCapture, promoted, castleType) {
+            if (castleType === 'K') return 'O-O';
+            if (castleType === 'Q') return 'O-O-O';
+            const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+            const dest = coordToAlgebraic(toR, toC);
+            if (piece.type === 'p') {
+                const base = isCapture ? `${files[fromC]}x${dest}` : dest;
+                return promoted ? `${base}=Q` : base;
+            }
+            return `${PIECE_NAMES[piece.type]}${isCapture ? 'x' : ''}${dest}`;
+        }
+
+        function recordMoveNotation(color, notationStr) {
+            if (color === 'w') {
+                gameState.movePairs.push({ moveNumber: gameState.movePairs.length + 1, w: notationStr, b: '' });
+            } else {
+                if (gameState.movePairs.length === 0) {
+                    gameState.movePairs.push({ moveNumber: 1, w: '...', b: notationStr });
+                } else {
+                    const last = gameState.movePairs[gameState.movePairs.length - 1];
+                    if (!last.b) last.b = notationStr;
+                    else gameState.movePairs.push({ moveNumber: gameState.movePairs.length + 1, w: '...', b: notationStr });
+                }
+            }
+            renderMoveHistory();
+        }
+
+        function renderMoveHistory() {
+            const tbody = document.getElementById('moveHistoryTable');
+            if (!tbody) return;
+            tbody.innerHTML = gameState.movePairs.map(row => `
+                <tr class="text-xs">
+                    <td class="py-1.5 px-3 text-[#989795] w-12 select-none font-sans">${row.moveNumber}.</td>
+                    <td class="py-1.5 px-3 text-white font-bold w-1/2">${row.w || ''}</td>
+                    <td class="py-1.5 px-3 text-[#c3c2c1] font-bold w-1/2">${row.b || ''}</td>
+                </tr>
+            `).join('');
+            const container = tbody.parentElement?.parentElement;
+            if (container) container.scrollTop = container.scrollHeight;
+        }
+
+        function showToast(msg, colorClass = 'bg-purple-900/95 border-purple-400 text-white') {
+            const container = document.getElementById('toastContainer');
+            if (!container) return;
+            const el = document.createElement('div');
+            el.className = `px-3 py-1 rounded-full border text-[11px] font-extrabold shadow-lg ${colorClass} transition-all duration-300`;
+            el.textContent = msg;
+            container.appendChild(el);
+            setTimeout(() => el.remove(), 2200);
+        }
+
+        function spawnSquareBurst(r, c, colorHex = '#38bdf8') {
+            const boardEl = document.getElementById('chessBoard');
+            if (!boardEl) return;
+            const sq = boardEl.querySelector(`.chess-square[data-r="${r}"][data-c="${c}"]`);
+            if (!sq) return;
+            const ring = document.createElement('div');
+            ring.className = 'fx-burst-ring';
+            ring.style.borderColor = colorHex;
+            sq.appendChild(ring);
+            setTimeout(() => ring.remove(), 500);
+        }
+
+        function getLegalMovesForSquare(r, c) {
+            const p = gameState.board[r][c];
+            if (!p || p.frozen > 0) return [];
+            const moves = [];
+
+            const tryAdd = (nr, nc, canCap = true, mustCap = false) => {
+                if (nr < 0 || nr > 7 || nc < 0 || nc > 7) return false;
+                if (gameState.sqEffects[nr][nc].wall > 0) return false;
+                const occ = gameState.board[nr][nc];
+                if (!occ) {
+                    if (!mustCap) moves.push({ r: nr, c: nc, isCapture: false });
+                    return true;
+                } else {
+                    if (canCap && occ.color !== p.color && occ.shield <= 0) {
+                        moves.push({ r: nr, c: nc, isCapture: true });
+                    }
+                    return false;
+                }
+            };
+
+            const dir = p.color === 'w' ? -1 : 1;
+            if (p.type === 'p') {
+                if (tryAdd(r + dir, c, false, false)) {
+                    const startRank = p.color === 'w' ? 6 : 1;
+                    if (r === startRank) tryAdd(r + dir * 2, c, false, false);
+                }
+                tryAdd(r + dir, c - 1, true, true);
+                tryAdd(r + dir, c + 1, true, true);
+            }
+
+            const slides = {
+                r: [[-1,0],[1,0],[0,-1],[0,1]],
+                b: [[-1,-1],[-1,1],[1,-1],[1,1]],
+                q: [[-1,0],[1,0],[0,-1],[0,1],[-1,-1],[-1,1],[1,-1],[1,1]]
+            };
+            if (slides[p.type]) {
+                for (const [dr, dc] of slides[p.type]) {
+                    for (let s = 1; s < 8; s++) {
+                        if (!tryAdd(r + dr * s, c + dc * s)) break;
+                    }
+                }
+            }
+
+            if (p.type === 'n' || p.ghost) {
+                const jumps = [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]];
+                for (const [dr, dc] of jumps) tryAdd(r + dr, c + dc);
+            }
+
+            if (p.type === 'k') {
+                for (let dr = -1; dr <= 1; dr++) {
+                    for (let dc = -1; dc <= 1; dc++) {
+                        if (dr !== 0 || dc !== 0) tryAdd(r + dr, c + dc);
+                    }
+                }
+                // Castling O-O and O-O-O
+                const homeRow = p.color === 'w' ? 7 : 0;
+                if (!p.moved && r === homeRow && c === 4) {
+                    const rookK = gameState.board[homeRow][7];
+                    if (rookK && rookK.type === 'r' && rookK.color === p.color && !rookK.moved) {
+                        if (!gameState.board[homeRow][5] && !gameState.board[homeRow][6] &&
+                            gameState.sqEffects[homeRow][5].wall === 0 && gameState.sqEffects[homeRow][6].wall === 0) {
+                            moves.push({ r: homeRow, c: 6, isCapture: false, castle: 'K' });
+                        }
+                    }
+                    const rookQ = gameState.board[homeRow][0];
+                    if (rookQ && rookQ.type === 'r' && rookQ.color === p.color && !rookQ.moved) {
+                        if (!gameState.board[homeRow][1] && !gameState.board[homeRow][2] && !gameState.board[homeRow][3] &&
+                            gameState.sqEffects[homeRow][2].wall === 0 && gameState.sqEffects[homeRow][3].wall === 0) {
+                            moves.push({ r: homeRow, c: 2, isCapture: false, castle: 'Q' });
+                        }
+                    }
+                }
+            }
+
+            return moves;
+        }
+
+        function executeStandardMove(fromR, fromC, toR, toC, isRemote = false) {
+            if (gameState.gameOver) return;
+            const piece = gameState.board[fromR][fromC];
+            if (!piece) return;
+            const target = gameState.board[toR][toC];
+            const isCapture = Boolean(target);
+
+            let castleType = null;
+            if (piece.type === 'k' && Math.abs(toC - fromC) === 2) {
+                castleType = toC === 6 ? 'K' : 'Q';
+                const rookFromC = castleType === 'K' ? 7 : 0;
+                const rookToC = castleType === 'K' ? 5 : 3;
+                const rook = gameState.board[fromR][rookFromC];
+                if (rook) {
+                    rook.moved = true;
+                    gameState.board[fromR][rookToC] = rook;
+                    gameState.board[fromR][rookFromC] = null;
+                }
+            }
+
+            piece.moved = true;
+            let promoted = false;
+            if (piece.type === 'p' && (toR === 0 || toR === 7)) {
+                promoted = true;
+            }
+
+            const notation = formatChessComNotation(piece, fromR, fromC, toR, toC, isCapture, promoted, castleType);
+            recordMoveNotation(piece.color, notation);
+
+            if (target) {
+                playSound('capture');
+                triggerHaptic([25, 40, 25]);
+                gameState.graveyard[target.color].push(target.type);
+                gameState.mana[piece.color] = Math.min(10, gameState.mana[piece.color] + 2);
+                piece.poison = 0;
+                piece.mark = 0;
+                if (target.type === 'k') {
+                    gameState.board[toR][toC] = piece;
+                    gameState.board[fromR][fromC] = null;
+                    if (gameState.mode === 'p2p' && !isRemote && p2pConn) {
+                        p2pConn.send({ type: 'move', fromR, fromC, toR, toC });
+                    }
+                    renderAll();
+                    triggerVictory(piece.color, 'Enemy King captured!');
+                    return;
+                }
+            } else {
+                playSound('move');
+                triggerHaptic(12);
+            }
+
+            if (promoted) piece.type = 'q';
+
+            gameState.board[toR][toC] = piece;
+            gameState.board[fromR][fromC] = null;
+            gameState.lastMove = { fromR, fromC, toR, toC };
+            gameState.selectedSq = null;
+            gameState.legalMoves = [];
+
+            // Check Trap or Mine on destination square
+            const sqEff = gameState.sqEffects[toR][toC];
+            if (sqEff.mine) {
+                sqEff.mine = null;
+                if (piece.type === 'k') {
+                    showToast('Royal Immunity: King defused Hidden Mine!', 'bg-emerald-900 border-emerald-400 text-white');
+                } else if (piece.shield > 0) {
+                    piece.shield = 0;
+                    showToast('Aegis Shield absorbed Hidden Mine!', 'bg-sky-900 border-sky-400 text-white');
+                } else {
+                    gameState.graveyard[piece.color].push(piece.type);
+                    gameState.board[toR][toC] = null;
+                    showToast('BOOM! Hidden Mine obliterated piece!', 'bg-red-900 border-red-400 text-white');
+                }
+            } else if (sqEff.trap && sqEff.trap !== piece.color) {
+                sqEff.trap = null;
+                if (piece.type !== 'k') {
+                    piece.frozen = Math.max(piece.frozen, 2);
+                    showToast('Bear Trap snapped! Frozen for 2 turns.', 'bg-amber-900/95 border-amber-400 text-amber-200');
+                }
+            }
+
+            if (gameState.mode === 'p2p' && !isRemote && p2pConn) {
+                p2pConn.send({ type: 'move', fromR, fromC, toR, toC });
+            }
+
+            if (gameState.extraTurn) {
+                gameState.extraTurn = false;
+                showToast('Chrono Warp: Take your bonus move!', 'bg-sky-900/95 border-sky-400 text-sky-200');
+                renderAll();
+                return;
+            }
+
+            advanceTurn();
+        }
+
+        function advanceTurn() {
+            const nextColor = gameState.turn === 'w' ? 'b' : 'w';
+            gameState.turn = nextColor;
+            gameState.mana[nextColor] = Math.min(10, gameState.mana[nextColor] + 2);
+
+            refreshTurnHand(nextColor);
+
+            // Tick status effects for the active player
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    if (gameState.sqEffects[r][c].wall > 0) gameState.sqEffects[r][c].wall--;
+                    const p = gameState.board[r][c];
+                    if (p && p.color === nextColor) {
+                        if (p.shield > 0) p.shield--;
+                        if (p.frozen > 0) p.frozen--;
+                        if (p.poison > 0 && p.type !== 'k') {
+                            p.poison--;
+                            if (p.poison === 0) {
+                                gameState.graveyard[p.color].push(p.type);
+                                gameState.board[r][c] = null;
+                                showToast(`Poison eliminated ${coordToAlgebraic(r, c)}!`, 'bg-emerald-950 border-emerald-400 text-emerald-200');
+                                continue;
+                            }
+                        }
+                        if (p.mark > 0 && p.type !== 'k') {
+                            p.mark--;
+                            if (p.mark === 0) {
+                                gameState.graveyard[p.color].push(p.type);
+                                gameState.board[r][c] = null;
+                                showToast(`Assassin Mark executed ${coordToAlgebraic(r, c)}!`, 'bg-red-950 border-red-400 text-red-200');
+                            }
+                        }
+                    }
+                }
+            }
+
+            renderAll();
+
+            if (gameState.mode === 'bot' && gameState.turn === 'b' && !gameState.gameOver) {
+                const badge = document.getElementById('topThinkingBadge');
+                if (badge) badge.classList.remove('hidden');
+                setTimeout(() => {
+                    if (badge) badge.classList.add('hidden');
+                    executeBotTurn();
+                }, 480);
+            }
+        }
+
+        // Spell Targeting & Execution (With Strict King Immunity)
+        function getValidTargets(color, abilityId, step = 1, firstTarget = null) {
+            const targets = [];
+            const enemy = color === 'w' ? 'b' : 'w';
+            const dir = color === 'w' ? -1 : 1;
+
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    const p = gameState.board[r][c];
+                    const eff = gameState.sqEffects[r][c];
+
+                    switch (abilityId) {
+                        case 'shield':
+                        case 'purify':
+                        case 'ghost':
+                        case 'smoke':
+                        case 'frostnova':
+                            if (p && p.color === color) targets.push({ r, c });
+                            break;
+                        case 'harvest':
+                            if (p && p.color === color && p.type !== 'k') targets.push({ r, c });
+                            break;
+                        case 'sprint':
+                            if (p && p.color === color && p.type === 'p') {
+                                const nr = r + dir;
+                                if (nr >= 0 && nr <= 7 && !gameState.board[nr][c] && gameState.sqEffects[nr][c].wall === 0) targets.push({ r, c });
+                            }
+                            break;
+                        case 'retreat':
+                            if (p && p.color === color) {
+                                const br = r - dir;
+                                if (br >= 0 && br <= 7 && !gameState.board[br][c] && gameState.sqEffects[br][c].wall === 0) targets.push({ r, c });
+                            }
+                            break;
+                        case 'sidestep':
+                            if (p && p.color === color) {
+                                const canL = c > 0 && !gameState.board[r][c - 1] && gameState.sqEffects[r][c - 1].wall === 0;
+                                const canR = c < 7 && !gameState.board[r][c + 1] && gameState.sqEffects[r][c + 1].wall === 0;
+                                if (canL || canR) targets.push({ r, c });
+                            }
+                            break;
+                        case 'cavalry':
+                            if (p && p.color === color && (p.type === 'n' || p.type === 'b')) {
+                                const nr = r + dir * 2;
+                                if (nr >= 0 && nr <= 7 && !gameState.board[nr][c] && gameState.sqEffects[nr][c].wall === 0) targets.push({ r, c });
+                            }
+                            break;
+                        case 'wall':
+                        case 'trap':
+                        case 'mine':
+                            if (!p && eff.wall === 0) targets.push({ r, c });
+                            break;
+                        case 'draft': {
+                            const pawnRank = color === 'w' ? 6 : 1;
+                            if (r === pawnRank && !p && eff.wall === 0) targets.push({ r, c });
+                            break;
+                        }
+                        case 'necro': {
+                            const backRank = color === 'w' ? 7 : 0;
+                            if (r === backRank && !p && eff.wall === 0) targets.push({ r, c });
+                            break;
+                        }
+                        case 'dispel':
+                            if (p && p.color === enemy && (p.shield > 0 || p.ghost)) targets.push({ r, c });
+                            break;
+                        case 'freeze':
+                        case 'poison':
+                        case 'mark':
+                        case 'meteor':
+                        case 'lightning':
+                            if (p && p.color === enemy && p.type !== 'k' && p.shield === 0) targets.push({ r, c });
+                            break;
+                        case 'execute':
+                            if (p && p.color === enemy && p.type !== 'k' && (p.frozen > 0 || p.poison > 0 || p.mark > 0)) targets.push({ r, c });
+                            break;
+                        case 'magnet':
+                            if (p && p.color === enemy && p.type !== 'k' && p.shield === 0) {
+                                const pullR = r - dir;
+                                if (pullR >= 0 && pullR <= 7 && !gameState.board[pullR][c] && gameState.sqEffects[pullR][c].wall === 0) targets.push({ r, c });
+                            }
+                            break;
+                        case 'shove':
+                            if (p && p.color === enemy && p.type !== 'k' && p.shield === 0) {
+                                const pushR = r + dir;
+                                if (pushR >= 0 && pushR <= 7 && !gameState.board[pushR][c] && gameState.sqEffects[pushR][c].wall === 0) targets.push({ r, c });
+                            }
+                            break;
+                        case 'sniper':
+                            if (p && p.color === enemy && ['p', 'n', 'b'].includes(p.type) && p.shield === 0) targets.push({ r, c });
+                            break;
+                        case 'poly':
+                            if (p && p.color === enemy && ['n', 'b', 'r'].includes(p.type) && p.shield === 0) targets.push({ r, c });
+                            break;
+                        case 'recruit':
+                            if (p && p.color === enemy && p.type === 'p' && p.shield === 0) targets.push({ r, c });
+                            break;
+                        case 'valkyrie':
+                            if (p && p.color === color && p.type === 'p') targets.push({ r, c });
+                            break;
+                        case 'archangel':
+                            if (p && p.color === color && (p.type === 'n' || p.type === 'b')) targets.push({ r, c });
+                            break;
+                        case 'clone':
+                            if (p && p.color === color && (p.type === 'n' || p.type === 'b')) {
+                                const hasEmptyAdj = [[-1,0],[1,0],[0,-1],[0,1]].some(([dr, dc]) => {
+                                    const nr = r + dr, nc = c + dc;
+                                    return nr >= 0 && nr <= 7 && nc >= 0 && nc <= 7 && !gameState.board[nr][nc] && gameState.sqEffects[nr][nc].wall === 0;
+                                });
+                                if (hasEmptyAdj) targets.push({ r, c });
+                            }
+                            break;
+                        case 'swap':
+                            if (step === 1 && p && p.color === color) targets.push({ r, c });
+                            if (step === 2 && p && p.color === color && (r !== firstTarget.r || c !== firstTarget.c)) targets.push({ r, c });
+                            break;
+                        case 'blink':
+                            if (step === 1 && p && p.color === color) targets.push({ r, c });
+                            if (step === 2 && !p && eff.wall === 0) {
+                                const ownHalf = color === 'w' ? r >= 4 : r <= 3;
+                                if (ownHalf) targets.push({ r, c });
+                            }
+                            break;
+                    }
+                }
+            }
+            return targets;
+        }
+
+        function activateAbilityCard(index) {
+            const color = getInteractiveColor();
+            if (gameState.gameOver || gameState.turn !== color) return;
+            const card = gameState.hands[color][index];
+            if (!card || gameState.mana[color] < card.cost) return;
+
+            if (card.steps === 0) {
+                executeSpellEffect(color, card, null, null);
+                gameState.mana[color] -= card.cost;
+                gameState.hands[color].splice(index, 1);
+                if (gameState.mode === 'p2p' && p2pConn) {
+                    p2pConn.send({ type: 'spell', color, cardId: card.id, t1: null, t2: null });
+                }
+                playSound('spell');
+                triggerHaptic(25);
+                renderAll();
+                return;
+            }
+
+            const validSquares = getValidTargets(color, card.id, 1, null);
+            if (validSquares.length === 0) {
+                showToast('No valid targets on board!', 'bg-red-900/95 border-red-400 text-white');
+                return;
+            }
+
+            gameState.activeSpell = { cardIndex: index, ability: card, step: 1, firstTarget: null, validSquares };
+            document.getElementById('spellTargetingBar')?.classList.remove('hidden');
+            document.getElementById('targetingSpellIcon').innerHTML = SVG_ICONS[card.icon] || SVG_ICONS.bolt;
+            document.getElementById('targetingSpellName').textContent = currentLang === 'ru' ? card.nameRu : card.name;
+            document.getElementById('targetingSpellPrompt').textContent = card.steps === 2 ? 'Step 1: Tap friendly piece' : 'Tap highlighted target square';
+            triggerHaptic(12);
+            renderAll();
+        }
+
+        function cancelSpellTargeting() {
+            gameState.activeSpell = null;
+            document.getElementById('spellTargetingBar')?.classList.add('hidden');
+            renderAll();
+        }
+
+        function executeSpellEffect(color, card, target1, target2) {
+            const dir = color === 'w' ? -1 : 1;
+            const enemy = color === 'w' ? 'b' : 'w';
+
+            if (target1) spawnSquareBurst(target1.r, target1.c, '#a855f7');
+            if (target2) spawnSquareBurst(target2.r, target2.c, '#38bdf8');
+
+            switch (card.id) {
+                case 'mana':
+                    gameState.mana[color] = Math.min(10, gameState.mana[color] + 4);
+                    break;
+                case 'manadrain': {
+                    const stolen = Math.min(2, gameState.mana[enemy]);
+                    gameState.mana[enemy] -= stolen;
+                    gameState.mana[color] = Math.min(10, gameState.mana[color] + stolen + 1);
+                    break;
+                }
+                case 'timewarp':
+                    gameState.extraTurn = true;
+                    break;
+                case 'escort': {
+                    for (let r = 0; r < 8; r++) {
+                        for (let c = 0; c < 8; c++) {
+                            const p = gameState.board[r][c];
+                            if (p && p.color === color && (p.type === 'k' || p.type === 'q')) {
+                                p.shield = Math.max(p.shield, 1);
+                                spawnSquareBurst(r, c, '#38bdf8');
+                            }
+                        }
+                    }
+                    break;
+                }
+                case 'phalanx': {
+                    let count = 0;
+                    const startR = color === 'w' ? 0 : 7;
+                    const endR = color === 'w' ? 7 : 0;
+                    const stepR = color === 'w' ? 1 : -1;
+                    for (let r = startR; r !== endR; r += stepR) {
+                        for (let c = 0; c < 8; c++) {
+                            if (count >= 3) break;
+                            const p = gameState.board[r][c];
+                            const nr = r + dir;
+                            if (p && p.color === color && p.type === 'p' && nr >= 0 && nr <= 7 && !gameState.board[nr][c] && gameState.sqEffects[nr][c].wall === 0) {
+                                gameState.board[nr][c] = p;
+                                gameState.board[r][c] = null;
+                                if (nr === 0 || nr === 7) p.type = 'q';
+                                spawnSquareBurst(nr, c, '#81b64c');
+                                count++;
+                            }
+                        }
+                    }
+                    break;
+                }
+                case 'quicksand': {
+                    const enemyPawns = [];
+                    for (let r = 0; r < 8; r++) {
+                        for (let c = 0; c < 8; c++) {
+                            const p = gameState.board[r][c];
+                            if (p && p.color === enemy && p.type === 'p') enemyPawns.push({ r, c, p });
+                        }
+                    }
+                    enemyPawns.sort(() => Math.random() - 0.5);
+                    enemyPawns.slice(0, 2).forEach(({ r, c, p }) => {
+                        p.frozen = Math.max(p.frozen, 2);
+                        spawnSquareBurst(r, c, '#38bdf8');
+                    });
+                    break;
+                }
+                case 'armydead': {
+                    const pawnRank = color === 'w' ? 6 : 1;
+                    let summoned = 0;
+                    for (let c = 0; c < 8 && summoned < 3; c++) {
+                        if (!gameState.board[pawnRank][c] && gameState.sqEffects[pawnRank][c].wall === 0) {
+                            gameState.board[pawnRank][c] = { color, type: 'p', shield: 1, frozen: 0, poison: 0, mark: 0, ghost: false, moved: false };
+                            spawnSquareBurst(pawnRank, c, '#a855f7');
+                            summoned++;
+                        }
+                    }
+                    break;
+                }
+                case 'cataclysm': {
+                    const victims = [];
+                    for (let r = 0; r < 8; r++) {
+                        for (let c = 0; c < 8; c++) {
+                            const p = gameState.board[r][c];
+                            if (p && p.color === enemy && p.type !== 'k') victims.push({ r, c, p });
+                            if (p && p.color === color && p.type === 'k') p.shield = Math.max(p.shield, 2);
+                        }
+                    }
+                    victims.sort(() => Math.random() - 0.5);
+                    let killed = 0;
+                    for (const v of victims) {
+                        if (killed < 2 && v.p.shield === 0) {
+                            gameState.graveyard[enemy].push(v.p.type);
+                            gameState.board[v.r][v.c] = null;
+                            spawnSquareBurst(v.r, v.c, '#ef4444');
+                            killed++;
+                        } else {
+                            v.p.frozen = Math.max(v.p.frozen, 1);
+                        }
+                    }
+                    const homeRank = color === 'w' ? 7 : 0;
+                    for (let c = 0; c < 8; c++) {
+                        if (!gameState.board[homeRank][c]) {
+                            gameState.board[homeRank][c] = { color, type: 'q', shield: 1, frozen: 0, poison: 0, mark: 0, ghost: false, moved: true };
+                            spawnSquareBurst(homeRank, c, '#fbbf24');
+                            break;
+                        }
+                    }
+                    break;
+                }
+                case 'shield':
+                    if (gameState.board[target1.r][target1.c]) gameState.board[target1.r][target1.c].shield = 2;
+                    break;
+                case 'smoke': {
+                    for (let dc = -1; dc <= 1; dc++) {
+                        const nc = target1.c + dc;
+                        if (nc >= 0 && nc <= 7 && gameState.board[target1.r][nc]?.color === color) {
+                            gameState.board[target1.r][nc].shield = Math.max(gameState.board[target1.r][nc].shield, 1);
+                        }
+                    }
+                    break;
+                }
+                case 'purify': {
+                    const p = gameState.board[target1.r][target1.c];
+                    if (p) { p.frozen = 0; p.poison = 0; p.mark = 0; p.shield = Math.max(p.shield, 1); }
+                    break;
+                }
+                case 'dispel': {
+                    const p = gameState.board[target1.r][target1.c];
+                    if (p) { p.shield = 0; p.ghost = false; }
+                    break;
+                }
+                case 'ghost':
+                    if (gameState.board[target1.r][target1.c]) gameState.board[target1.r][target1.c].ghost = true;
+                    break;
+                case 'harvest': {
+                    const p = gameState.board[target1.r][target1.c];
+                    if (p) {
+                        p.frozen = 2;
+                        gameState.mana[color] = Math.min(10, gameState.mana[color] + 3);
+                    }
+                    break;
+                }
+                case 'sprint': {
+                    const p = gameState.board[target1.r][target1.c];
+                    let destR = target1.r + dir;
+                    if (destR + dir >= 0 && destR + dir <= 7 && !gameState.board[destR + dir][target1.c] && gameState.sqEffects[destR + dir][target1.c].wall === 0) {
+                        destR += dir;
+                    }
+                    gameState.board[destR][target1.c] = p;
+                    gameState.board[target1.r][target1.c] = null;
+                    if (destR === 0 || destR === 7) p.type = 'q';
+                    break;
+                }
+                case 'retreat': {
+                    const p = gameState.board[target1.r][target1.c];
+                    const br = target1.r - dir;
+                    if (br >= 0 && br <= 7 && !gameState.board[br][target1.c]) {
+                        gameState.board[br][target1.c] = p;
+                        gameState.board[target1.r][target1.c] = null;
+                    }
+                    break;
+                }
+                case 'sidestep': {
+                    const p = gameState.board[target1.r][target1.c];
+                    const destC = (target1.c > 0 && !gameState.board[target1.r][target1.c - 1] && gameState.sqEffects[target1.r][target1.c - 1].wall === 0) ? target1.c - 1 : target1.c + 1;
+                    gameState.board[target1.r][destC] = p;
+                    gameState.board[target1.r][target1.c] = null;
+                    break;
+                }
+                case 'cavalry': {
+                    const p = gameState.board[target1.r][target1.c];
+                    const nr = target1.r + dir * 2;
+                    if (p && nr >= 0 && nr <= 7 && !gameState.board[nr][target1.c]) {
+                        p.shield = Math.max(p.shield, 1);
+                        gameState.board[nr][target1.c] = p;
+                        gameState.board[target1.r][target1.c] = null;
+                    }
+                    break;
+                }
+                case 'frostnova': {
+                    for (let dr = -1; dr <= 1; dr++) {
+                        for (let dc = -1; dc <= 1; dc++) {
+                            const nr = target1.r + dr, nc = target1.c + dc;
+                            if (nr >= 0 && nr <= 7 && nc >= 0 && nc <= 7) {
+                                const v = gameState.board[nr][nc];
+                                if (v && v.color === enemy && v.type !== 'k' && v.shield === 0) {
+                                    v.frozen = Math.max(v.frozen, 2);
+                                    spawnSquareBurst(nr, nc, '#38bdf8');
+                                }
+                            }
+                        }
+                    }
+                    break;
+                }
+                case 'wall':
+                    gameState.sqEffects[target1.r][target1.c].wall = 3;
+                    break;
+                case 'trap':
+                    gameState.sqEffects[target1.r][target1.c].trap = color;
+                    break;
+                case 'mine':
+                    gameState.sqEffects[target1.r][target1.c].mine = color;
+                    break;
+                case 'draft':
+                    gameState.board[target1.r][target1.c] = { color, type: 'p', shield: 0, frozen: 0, poison: 0, mark: 0, ghost: false, moved: false };
+                    break;
+                case 'necro':
+                    gameState.board[target1.r][target1.c] = { color, type: 'r', shield: 0, frozen: 0, poison: 0, mark: 0, ghost: false, moved: true };
+                    break;
+                case 'freeze':
+                    if (gameState.board[target1.r][target1.c]) gameState.board[target1.r][target1.c].frozen = 2;
+                    break;
+                case 'poison':
+                    if (gameState.board[target1.r][target1.c]) gameState.board[target1.r][target1.c].poison = 3;
+                    break;
+                case 'mark':
+                    if (gameState.board[target1.r][target1.c]) gameState.board[target1.r][target1.c].mark = 2;
+                    break;
+                case 'magnet': {
+                    const v = gameState.board[target1.r][target1.c];
+                    const pullR = target1.r - dir;
+                    if (v && pullR >= 0 && pullR <= 7 && !gameState.board[pullR][target1.c]) {
+                        gameState.board[pullR][target1.c] = v;
+                        gameState.board[target1.r][target1.c] = null;
+                    }
+                    break;
+                }
+                case 'shove': {
+                    const v = gameState.board[target1.r][target1.c];
+                    const pushR = target1.r + dir;
+                    if (v && pushR >= 0 && pushR <= 7 && !gameState.board[pushR][target1.c]) {
+                        v.frozen = Math.max(v.frozen, 1);
+                        gameState.board[pushR][target1.c] = v;
+                        gameState.board[target1.r][target1.c] = null;
+                    }
+                    break;
+                }
+                case 'sniper':
+                case 'execute': {
+                    const v = gameState.board[target1.r][target1.c];
+                    if (v && v.type !== 'k') {
+                        gameState.graveyard[v.color].push(v.type);
+                        gameState.board[target1.r][target1.c] = null;
+                    }
+                    break;
+                }
+                case 'lightning': {
+                    const v = gameState.board[target1.r][target1.c];
+                    if (v && v.type !== 'k') {
+                        gameState.graveyard[v.color].push(v.type);
+                        gameState.board[target1.r][target1.c] = null;
+                        for (const [dr, dc] of [[-1,0],[1,0],[0,-1],[0,1]]) {
+                            const nr = target1.r + dr, nc = target1.c + dc;
+                            if (nr >= 0 && nr <= 7 && nc >= 0 && nc <= 7) {
+                                const adj = gameState.board[nr][nc];
+                                if (adj && adj.color === enemy && adj.type !== 'k') adj.frozen = Math.max(adj.frozen, 1);
+                            }
+                        }
+                    }
+                    break;
+                }
+                case 'meteor': {
+                    const v = gameState.board[target1.r][target1.c];
+                    if (v && v.type !== 'k') {
+                        gameState.graveyard[v.color].push(v.type);
+                        gameState.board[target1.r][target1.c] = null;
+                        gameState.sqEffects[target1.r][target1.c].wall = 2;
+                    }
+                    break;
+                }
+                case 'poly':
+                    if (gameState.board[target1.r][target1.c]) gameState.board[target1.r][target1.c].type = 'p';
+                    break;
+                case 'recruit': {
+                    const v = gameState.board[target1.r][target1.c];
+                    if (v) { v.color = color; v.frozen = 1; }
+                    break;
+                }
+                case 'valkyrie':
+                    if (gameState.board[target1.r][target1.c]) gameState.board[target1.r][target1.c].type = 'n';
+                    break;
+                case 'archangel':
+                    if (gameState.board[target1.r][target1.c]) {
+                        gameState.board[target1.r][target1.c].type = 'q';
+                        gameState.board[target1.r][target1.c].shield = 1;
+                    }
+                    break;
+                case 'clone': {
+                    const src = gameState.board[target1.r][target1.c];
+                    for (const [dr, dc] of [[-1,0],[1,0],[0,-1],[0,1]]) {
+                        const nr = target1.r + dr, nc = target1.c + dc;
+                        if (nr >= 0 && nr <= 7 && nc >= 0 && nc <= 7 && !gameState.board[nr][nc] && gameState.sqEffects[nr][nc].wall === 0) {
+                            gameState.board[nr][nc] = { ...src, shield: 0 };
+                            break;
+                        }
+                    }
+                    break;
+                }
+                case 'swap': {
+                    const tmp = gameState.board[target1.r][target1.c];
+                    gameState.board[target1.r][target1.c] = gameState.board[target2.r][target2.c];
+                    gameState.board[target2.r][target2.c] = tmp;
+                    break;
+                }
+                case 'blink': {
+                    gameState.board[target2.r][target2.c] = gameState.board[target1.r][target1.c];
+                    gameState.board[target1.r][target1.c] = null;
+                    break;
+                }
+            }
+            const spellTitle = currentLang === 'ru' ? card.nameRu : card.name;
+            showToast(`${color === 'w' ? 'White' : 'Black'} cast ${spellTitle}!`);
+            recordMoveNotation(color, `⚡${ card.id.toUpperCase() }`);
+        }
+
+        function handleSquareClick(r, c) {
+            if (gameState.gameOver) return;
+            const color = getInteractiveColor();
+            if (gameState.turn !== color) return;
+
+            if (gameState.activeSpell) {
+                const valid = gameState.activeSpell.validSquares.some(s => s.r === r && s.c === c);
+                if (!valid) return;
+
+                if (gameState.activeSpell.ability.steps === 2 && gameState.activeSpell.step === 1) {
+                    gameState.activeSpell.firstTarget = { r, c };
+                    gameState.activeSpell.step = 2;
+                    gameState.activeSpell.validSquares = getValidTargets(color, gameState.activeSpell.ability.id, 2, { r, c });
+                    document.getElementById('targetingSpellPrompt').textContent = 'Step 2: Tap destination square';
+                    renderAll();
+                    return;
+                }
+
+                const card = gameState.activeSpell.ability;
+                const f = gameState.activeSpell.firstTarget;
+                const t1 = card.steps === 2 ? f : { r, c };
+                const t2 = card.steps === 2 ? { r, c } : null;
+
+                executeSpellEffect(color, card, t1, t2);
+                gameState.mana[color] -= card.cost;
+                gameState.hands[color].splice(gameState.activeSpell.cardIndex, 1);
+                if (gameState.mode === 'p2p' && p2pConn) {
+                    p2pConn.send({ type: 'spell', color, cardId: card.id, t1, t2 });
+                }
+                cancelSpellTargeting();
+                playSound('spell');
+                triggerHaptic(25);
+                renderAll();
+                return;
+            }
+        }
+
+        // Smarter Tactical AI Bot
+        function executeBotTurn() {
+            if (gameState.gameOver || gameState.turn !== 'b') return;
+            const profile = BOT_PROFILES[gameState.botKey] || BOT_PROFILES.archmage;
+
+            // 1. Bot evaluates and casts high-impact spells
+            if (Math.random() < profile.spellChance) {
+                for (let i = 0; i < gameState.hands.b.length; i++) {
+                    const card = gameState.hands.b[i];
+                    if (card.cost <= gameState.mana.b) {
+                        if (card.steps === 0) {
+                            executeSpellEffect('b', card, null, null);
+                            gameState.mana.b -= card.cost;
+                            gameState.hands.b.splice(i, 1);
+                            playSound('spell');
+                            break;
+                        } else if (card.steps === 1) {
+                            const targets = getValidTargets('b', card.id, 1, null);
+                            if (targets.length > 0) {
+                                // Prioritize highest value target on offensive spells
+                                targets.sort((a, b) => {
+                                    const pa = gameState.board[a.r][a.c];
+                                    const pb = gameState.board[b.r][b.c];
+                                    return (pb ? PIECE_VALUES[pb.type] : 0) - (pa ? PIECE_VALUES[pa.type] : 0);
+                                });
+                                const pick = targets[0];
+                                executeSpellEffect('b', card, pick, null);
+                                gameState.mana.b -= card.cost;
+                                gameState.hands.b.splice(i, 1);
+                                playSound('spell');
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 2. Bot evaluates standard chess moves (material + center control + king safety)
+            const allMoves = [];
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    const p = gameState.board[r][c];
+                    if (p && p.color === 'b' && p.frozen === 0) {
+                        const legal = getLegalMovesForSquare(r, c);
+                        for (const m of legal) {
+                            const victim = gameState.board[m.r][m.c];
+                            let score = victim ? PIECE_VALUES[victim.type] * 12 : 0;
+                            // Center control & advancement bonus
+                            const centerBonus = (3.5 - Math.abs(3.5 - m.c)) * 6 + m.r * 5;
+                            // Avoid stepping onto own visible traps/mines
+                            if (gameState.sqEffects[m.r][m.c].mine || gameState.sqEffects[m.r][m.c].trap) score -= 400;
+                            score += centerBonus + Math.random() * 18;
+                            allMoves.push({ fromR: r, fromC: c, toR: m.r, toC: m.c, score });
+                        }
+                    }
+                }
+            }
+
+            if (allMoves.length === 0) {
+                triggerVictory('w', 'Black has no legal moves!');
+                return;
+            }
+
+            allMoves.sort((a, b) => b.score - a.score);
+            const chosen = allMoves[0];
+            executeStandardMove(chosen.fromR, chosen.fromC, chosen.toR, chosen.toC);
+        }
+
+        // Spellbook (Grimoire) Modal
+        function toggleSpellbookModal(show) {
+            const modal = document.getElementById('spellbookModal');
+            if (!modal) return;
+            if (show) {
+                filterSpellbook('all');
+                modal.classList.remove('hidden');
+            } else {
+                modal.classList.add('hidden');
+            }
+        }
+
+        function filterSpellbook(rarityFilter) {
+            ['all', 'common', 'rare', 'epic', 'legendary'].forEach(r => {
+                const btn = document.getElementById('sbFilter_' + r);
+                if (btn) {
+                    btn.className = r === rarityFilter
+                        ? 'px-2.5 py-1 rounded text-[10px] font-extrabold bg-chessGreen text-white'
+                        : 'px-2 py-1 rounded text-[10px] font-bold bg-white/10 text-neutral-300 hover:text-white';
+                }
+            });
+
+            const grid = document.getElementById('spellbookGrid');
+            if (!grid) return;
+            const list = rarityFilter === 'all' ? ABILITIES_DB : ABILITIES_DB.filter(a => a.rarity === rarityFilter);
+            grid.innerHTML = list.map(card => {
+                const rMeta = RARITY_META[card.rarity];
+                const title = currentLang === 'ru' ? card.nameRu : card.name;
+                const desc = currentLang === 'ru' ? card.descRu : card.desc;
+                const rLabel = currentLang === 'ru' ? rMeta.labelRu : rMeta.label;
+                return `
+                    <div onclick="openSpellInspectById(event, '${card.id}', null)" oncontextmenu="openSpellInspectById(event, '${card.id}', null)" class="cursor-pointer rounded-xl border p-2.5 flex flex-col justify-between hover:brightness-110 transition ${rMeta.cardClass}">
+                        <div>
+                            <div class="flex items-center justify-between gap-1">
+                                <span class="font-extrabold text-xs text-white flex items-center gap-1.5">
+                                    <span class="text-sky-400">${SVG_ICONS[card.icon] || SVG_ICONS.bolt}</span>
+                                    ${title}
+                                </span>
+                                <span class="text-xs font-mono font-black text-sky-400">${card.cost}⚡</span>
+                            </div>
+                            <div class="flex items-center justify-between mt-1">
+                                <span class="text-[9px] font-extrabold px-1.5 py-0.5 rounded ${rMeta.badgeClass}">${rLabel}</span>
+                                <span class="text-[9px] font-mono text-neutral-400">Drop: ${card.dropPct}%</span>
+                            </div>
+                            <p class="text-[11px] text-neutral-300 mt-1.5 leading-snug">${desc}</p>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Expanded Spell Inspector Modal (Right-Click / PKM on Hand Cards)
+        function openSpellInspectByHandIdx(event, handIdx) {
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            const color = getInteractiveColor();
+            const hand = gameState.hands[color] || [];
+            const card = hand[handIdx];
+            if (!card) return;
+            openSpellInspectById(null, card.id, handIdx);
+        }
+
+        function openSpellInspectById(event, cardId, handIdx = null) {
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            const card = ABILITIES_DB.find(a => a.id === cardId);
+            if (!card) return;
+
+            const modal = document.getElementById('spellInspectModal');
+            const cardBox = document.getElementById('spellInspectCardBox');
+            if (!modal || !cardBox) return;
+
+            const isRu = currentLang === 'ru';
+            const rMeta = RARITY_META[card.rarity] || RARITY_META.common;
+            const color = getInteractiveColor();
+
+            // Re-trigger fly-out animation cleanly
+            cardBox.className = `spell-inspect-card-anim bg-[#21201d] border-2 rounded-2xl max-w-sm w-full overflow-hidden relative inspect-glow-${card.rarity}`;
+            void cardBox.offsetWidth;
+
+            const iconColors = {
+                common: 'bg-slate-500/20 border-slate-400/50 text-slate-200',
+                rare: 'bg-sky-500/20 border-sky-400/60 text-sky-300',
+                epic: 'bg-purple-500/20 border-purple-400/60 text-purple-300',
+                legendary: 'bg-amber-500/25 border-amber-400/80 text-amber-300'
+            };
+            const iconBox = document.getElementById('inspectIconBox');
+            iconBox.className = `spell-crest-anim w-14 h-14 rounded-2xl flex items-center justify-center border-2 shadow-xl shrink-0 ${iconColors[card.rarity] || iconColors.common}`;
+            iconBox.innerHTML = `<div class="scale-[1.75]">${SVG_ICONS[card.icon] || SVG_ICONS.bolt}</div>`;
+
+            const rBadge = document.getElementById('inspectRarityBadge');
+            rBadge.className = `text-[9px] font-extrabold px-2 py-0.5 rounded uppercase tracking-wider ${rMeta.badgeClass}`;
+            rBadge.textContent = isRu ? rMeta.labelRu : rMeta.label;
+
+            document.getElementById('inspectDropBadge').textContent = `${isRu ? 'Шанс' : 'Drop'}: ${card.dropPct}%`;
+            document.getElementById('inspectSpellTitle').textContent = isRu ? card.nameRu : card.name;
+            document.getElementById('inspectDescHeading').textContent = isRu ? 'Полное описание и эффект' : 'Full Ability Description';
+            document.getElementById('inspectSpellDesc').textContent = isRu ? card.descRu : card.desc;
+
+            document.getElementById('inspectLblCost').textContent = isRu ? 'Мана' : 'Mana Cost';
+            document.getElementById('inspectLblType').textContent = isRu ? 'Применение' : 'Targeting';
+            document.getElementById('inspectLblTargets').textContent = isRu ? 'Целей на доске' : 'Valid Targets';
+
+            document.getElementById('inspectManaCost').textContent = `${card.cost} ⚡`;
+
+            let targetTypeText = '';
+            if (card.steps === 0) {
+                targetTypeText = isRu ? 'Мгновенно' : 'Instant';
+            } else if (card.steps === 1) {
+                targetTypeText = isRu ? '1 клетка' : '1 Square';
+            } else {
+                targetTypeText = isRu ? '2 шага' : '2 Squares';
+            }
+            document.getElementById('inspectTargetType').textContent = targetTypeText;
+
+            const validSquares = card.steps === 0 ? ['instant'] : getValidTargets(color, card.id, 1, null);
+            const validCountEl = document.getElementById('inspectValidCount');
+            if (card.steps === 0) {
+                validCountEl.textContent = isRu ? 'Сразу' : 'Ready';
+                validCountEl.className = 'text-xs font-mono font-black text-[#81b64c] mt-0.5';
+            } else {
+                validCountEl.textContent = validSquares.length;
+                validCountEl.className = `text-sm font-mono font-black mt-0.5 ${validSquares.length > 0 ? 'text-[#81b64c]' : 'text-red-400'}`;
+            }
+
+            document.getElementById('inspectRuleHint').textContent = isRu
+                ? 'Бонусное действие: использование способности не тратит ваш обычный ход фигурой. Король имеет иммунитет к уничтожению.'
+                : 'Bonus Action: casting a spell does not end your normal chess move. Kings are immune to spell execution.';
+
+            const castBtn = document.getElementById('inspectCastBtn');
+            if (handIdx !== null && gameState.turn === color && !gameState.gameOver) {
+                const canAfford = gameState.mana[color] >= card.cost;
+                const hasTargets = card.steps === 0 || validSquares.length > 0;
+                castBtn.classList.remove('hidden');
+                castBtn.disabled = !(canAfford && hasTargets);
+                if (canAfford && hasTargets) {
+                    castBtn.className = 'flex-1 btn-green py-2.5 px-4 rounded-xl text-xs font-extrabold flex items-center justify-center gap-1.5';
+                    castBtn.innerHTML = `<span>⚡ ${isRu ? 'Применить' : 'Cast Now'} (${card.cost}⚡)</span>`;
+                    castBtn.onclick = () => {
+                        closeSpellInspectModal();
+                        activateAbilityCard(handIdx);
+                    };
+                } else {
+                    castBtn.className = 'flex-1 btn-dark opacity-50 cursor-not-allowed py-2.5 px-4 rounded-xl text-xs font-bold flex items-center justify-center';
+                    castBtn.innerHTML = `<span>${!canAfford ? (isRu ? 'Не хватает маны' : 'Not Enough Mana') : (isRu ? 'Нет целей' : 'No Valid Targets')}</span>`;
+                    castBtn.onclick = null;
+                }
+            } else {
+                castBtn.classList.add('hidden');
+            }
+
+            triggerHaptic(12);
+            modal.classList.remove('hidden');
+        }
+
+        function closeSpellInspectModal(event) {
+            if (event && event.target && event.target.id !== 'spellInspectModal') return;
+            document.getElementById('spellInspectModal')?.classList.add('hidden');
+        }
+
+        function toggleBotModal(show) {
+            const modal = document.getElementById('botModal');
+            if (!modal) return;
+            if (show) {
+                const grid = document.getElementById('botCardsGrid');
+                grid.innerHTML = Object.entries(BOT_PROFILES).map(([key, b]) => `
+                    <div onclick="selectBotProfile('${key}')" class="cursor-pointer p-3 rounded-xl border ${gameState.botKey === key ? 'border-chessGreen bg-chessGreen/15' : 'border-white/10 bg-[#181715] hover:bg-white/5'} flex items-center gap-3 transition">
+                        <img src="${b.avatar}" class="w-11 h-11 rounded-lg object-cover border border-white/20" onerror="this.src='https://placehold.co/44x44/383633/fff?text=AI'">
+                        <div class="min-w-0">
+                            <div class="flex items-center gap-1.5">
+                                <span class="font-extrabold text-xs text-white">${b.name}</span>
+                                <span class="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-white/10 text-chessGreen">${b.rating}</span>
+                            </div>
+                            <p class="text-[10px] text-neutral-400 mt-0.5">${b.desc}</p>
+                            <span class="inline-block mt-1 text-[9px] font-bold text-purple-300">Spell Aggression: ${Math.round(b.spellChance * 100)}%</span>
+                        </div>
+                    </div>
+                `).join('');
+                modal.classList.remove('hidden');
+            } else {
+                modal.classList.add('hidden');
+            }
+        }
+
+        function selectBotProfile(key) {
+            gameState.botKey = key;
+            const b = BOT_PROFILES[key];
+            document.getElementById('topName').textContent = b.name;
+            document.getElementById('topRating').textContent = `(${b.rating})`;
+            document.getElementById('selectedBotCardName').textContent = b.name;
+            document.getElementById('selectedBotCardElo').textContent = `(${b.rating})`;
+            document.getElementById('selectedBotCardDesc').textContent = b.desc;
+            toggleBotModal(false);
+            initBoardState();
+        }
+
+        function rerollRandomCard() {
+            const color = getInteractiveColor();
+            if (gameState.gameOver || gameState.turn !== color || gameState.mana[color] < 1) return;
+            gameState.mana[color] -= 1;
+            refreshTurnHand(color);
+            playSound('spell');
+            triggerHaptic(20);
+            renderAll();
+        }
+
+        function renderBoard() {
+            const boardEl = document.getElementById('chessBoard');
+            if (!boardEl) return;
+            boardEl.innerHTML = '';
+            const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+
+            for (let rowIdx = 0; rowIdx < 8; rowIdx++) {
+                for (let colIdx = 0; colIdx < 8; colIdx++) {
+                    const r = gameState.boardFlipped ? 7 - rowIdx : rowIdx;
+                    const c = gameState.boardFlipped ? 7 - colIdx : colIdx;
+
+                    const sq = document.createElement('div');
+                    sq.className = `chess-square ${(r + c) % 2 === 0 ? 'sq-light' : 'sq-dark'}`;
+                    sq.dataset.r = r;
+                    sq.dataset.c = c;
+
+                    // Coordinates on edge squares
+                    if (colIdx === 0) {
+                        sq.innerHTML += `<span class="coord-rank">${8 - r}</span>`;
+                    }
+                    if (rowIdx === 7) {
+                        sq.innerHTML += `<span class="coord-file">${files[c]}</span>`;
+                    }
+
+                    if (gameState.selectedSq && gameState.selectedSq.r === r && gameState.selectedSq.c === c) sq.classList.add('sq-selected');
+                    if (gameState.lastMove && ((gameState.lastMove.fromR === r && gameState.lastMove.fromC === c) || (gameState.lastMove.toR === r && gameState.lastMove.toC === c))) sq.classList.add('sq-last-move');
+                    if (gameState.activeSpell && gameState.activeSpell.validSquares.some(s => s.r === r && s.c === c)) sq.classList.add('sq-spell-target');
+
+                    const eff = gameState.sqEffects[r][c];
+                    if (eff.wall > 0) {
+                        sq.innerHTML += `<div class="status-wall">${SVG_ICONS.wall}</div>`;
+                    } else {
+                        if (eff.trap) sq.innerHTML += `<div class="status-trap">T</div>`;
+                        if (eff.mine) sq.innerHTML += `<div class="status-mine">M</div>`;
+                    }
+
+                    const p = gameState.board[r][c];
+                    if (p) {
+                        const img = document.createElement('img');
+                        img.src = getPieceImageUrl(p.color, p.type);
+                        img.className = 'chess-piece-img';
+                        sq.appendChild(img);
+                        if (p.shield > 0) sq.innerHTML += `<div class="status-shield"></div>`;
+                        if (p.frozen > 0) sq.innerHTML += `<div class="status-frozen"></div>`;
+                        if (p.poison > 0) sq.innerHTML += `<div class="status-poison">${p.poison}</div>`;
+                        if (p.mark > 0)   sq.innerHTML += `<div class="status-mark">${p.mark}</div>`;
+                        if (p.ghost)      sq.innerHTML += `<div class="status-ghost">G</div>`;
+                    }
+
+                    const lm = gameState.legalMoves.find(m => m.r === r && m.c === c);
+                    if (lm) {
+                        sq.innerHTML += lm.isCapture ? `<div class="legal-capture-ring"></div>` : `<div class="legal-dot"></div>`;
+                    }
+
+                    boardEl.appendChild(sq);
+                }
+            }
+        }
+
+        function renderManaPips(containerId, currentMana) {
+            const el = document.getElementById(containerId);
+            if (!el) return;
+            let html = '';
+            for (let i = 1; i <= 10; i++) {
+                html += `<div class="mana-pip ${i <= currentMana ? 'filled' : ''}"></div>`;
+            }
+            el.innerHTML = html;
+        }
+
+        function renderGraveyards() {
+            const topEl = document.getElementById('graveyardTop');
+            const botEl = document.getElementById('graveyardBottom');
+            if (topEl) {
+                topEl.innerHTML = gameState.graveyard.w.slice(-7).map(t => `<img src="${getPieceImageUrl('w', t)}" class="graveyard-piece-icon">`).join('');
+            }
+            if (botEl) {
+                botEl.innerHTML = gameState.graveyard.b.slice(-7).map(t => `<img src="${getPieceImageUrl('b', t)}" class="graveyard-piece-icon">`).join('');
+            }
+        }
+
+        function renderHandAndUI() {
+            const color = getInteractiveColor();
+            const hand = gameState.hands[color] || [];
+            const handContainer = document.getElementById('playerHandContainer');
+            const handCountLabel = document.getElementById('handCountLabel');
+            if (handCountLabel) handCountLabel.textContent = hand.length;
+
+            const mobTabSpells = document.getElementById('mobTabSpells');
+            if (mobTabSpells) mobTabSpells.textContent = `⚡ Spells (${hand.length})`;
+
+            if (handContainer) {
+                handContainer.innerHTML = hand.map((card, idx) => {
+                    const canAfford = gameState.mana[color] >= card.cost && gameState.turn === color;
+                    const rMeta = RARITY_META[card.rarity] || RARITY_META.common;
+                    const isSelected = gameState.activeSpell && gameState.activeSpell.cardIndex === idx;
+                    const title = currentLang === 'ru' ? card.nameRu : card.name;
+                    const desc = currentLang === 'ru' ? card.descRu : card.desc;
+                    const rLabel = currentLang === 'ru' ? rMeta.labelRu : rMeta.label;
+                    return `
+                        <div onclick="activateAbilityCard(${idx})" oncontextmenu="openSpellInspectByHandIdx(event, ${idx})" title="ЛКМ — Применить | ПКМ — Подробное описание" class="spell-card-spawn group relative cursor-pointer rounded-xl border p-2 flex flex-col justify-between transition ${rMeta.cardClass} ${isSelected ? 'ring-2 ring-purple-400 scale-[0.98]' : ''} ${!canAfford ? 'opacity-45' : 'hover:brightness-110 active:scale-95'}">
+                            <div>
+                                <div class="flex items-center justify-between gap-1">
+                                    <span class="font-extrabold text-[11px] text-white truncate flex items-center gap-1">
+                                        <span class="text-sky-400 shrink-0">${SVG_ICONS[card.icon] || SVG_ICONS.bolt}</span>
+                                        <span class="truncate">${title}</span>
+                                    </span>
+                                    <div class="flex items-center gap-1 shrink-0">
+                                        <span class="text-[10px] font-mono font-black text-sky-400">${card.cost}⚡</span>
+                                        <button onclick="openSpellInspectByHandIdx(event, ${idx})" class="w-4 h-4 rounded-full bg-white/10 hover:bg-white/25 text-[9px] font-bold text-neutral-300 hover:text-white flex items-center justify-center" title="Inspect Spell (Right-Click)">?</button>
+                                    </div>
+                                </div>
+                                <div class="flex items-center justify-between mt-0.5">
+                                    <span class="text-[8px] font-extrabold px-1 py-0.2 rounded ${rMeta.badgeClass}">${rLabel}</span>
+                                    <span class="text-[8px] font-mono text-neutral-400">${card.dropPct}%</span>
+                                </div>
+                                <p class="text-[9.5px] text-neutral-300 mt-1 leading-tight line-clamp-2">${desc}</p>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            // Mana & Turn Badges
+            document.getElementById('topManaIcon').innerHTML = SVG_ICONS.mana;
+            document.getElementById('bottomManaIcon').innerHTML = SVG_ICONS.mana;
+            document.getElementById('topManaText').textContent = `${gameState.mana.b}/10`;
+            document.getElementById('bottomManaText').textContent = `${gameState.mana.w}/10`;
+
+            renderManaPips('topManaBar', gameState.mana.b);
+            renderManaPips('bottomManaBar', gameState.mana.w);
+            renderGraveyards();
+
+            const turnBadge = document.getElementById('bottomTurnBadge');
+            if (turnBadge) {
+                if (gameState.turn === color) {
+                    turnBadge.textContent = currentLang === 'ru' ? 'ВАШ ХОД' : 'YOUR TURN';
+                    turnBadge.className = 'text-[9px] font-extrabold bg-chessGreen text-white px-1.5 py-0.5 rounded shrink-0 shadow';
+                } else {
+                    turnBadge.textContent = currentLang === 'ru' ? 'ХОД СОПЕРНИКА' : 'OPPONENT TURN';
+                    turnBadge.className = 'text-[9px] font-bold bg-neutral-700 text-neutral-300 px-1.5 py-0.5 rounded shrink-0';
+                }
+            }
+
+            // Evaluation Bar
+            let score = 0;
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    const p = gameState.board[r][c];
+                    if (p && p.type !== 'k') {
+                        const val = PIECE_VALUES[p.type] / 100;
+                        score += p.color === 'w' ? val : -val;
+                    }
+                }
+            }
+            const evalText = document.getElementById('evalScoreText');
+            if (evalText) evalText.textContent = (score >= 0 ? '+' : '') + score.toFixed(1);
+            const blackPct = Math.max(8, Math.min(92, 50 - score * 4.5));
+            const evalBarBlack = document.getElementById('evalBarBlack');
+            if (evalBarBlack) evalBarBlack.style.height = `${blackPct}%`;
+        }
+
+        function renderAll() {
+            renderBoard();
+            renderHandAndUI();
+            renderMoveHistory();
+        }
+
+        function clearAllDragGhosts() {
+            document.querySelectorAll('.floating-drag-piece').forEach(el => el.remove());
+            document.querySelectorAll('.piece-dragging-source').forEach(el => el.classList.remove('piece-dragging-source'));
+            document.querySelectorAll('.sq-drag-hover').forEach(el => el.classList.remove('sq-drag-hover'));
+        }
+
+        // Update selection & legal move markers in-place WITHOUT destroying DOM nodes (prevents mobile touch cancel)
+        function updateBoardHighlightsInPlace() {
+            const boardEl = document.getElementById('chessBoard');
+            if (!boardEl) return;
+            boardEl.querySelectorAll('.chess-square').forEach(sq => {
+                const r = Number(sq.dataset.r);
+                const c = Number(sq.dataset.c);
+
+                const isSel = Boolean(gameState.selectedSq && gameState.selectedSq.r === r && gameState.selectedSq.c === c);
+                sq.classList.toggle('sq-selected', isSel);
+
+                // Remove old legal move indicators
+                sq.querySelectorAll('.legal-dot, .legal-capture-ring').forEach(el => el.remove());
+
+                // Add current legal move indicators
+                const lm = gameState.legalMoves.find(m => m.r === r && m.c === c);
+                if (lm) {
+                    const indicator = document.createElement('div');
+                    indicator.className = lm.isCapture ? 'legal-capture-ring' : 'legal-dot';
+                    sq.appendChild(indicator);
+                }
+            });
+        }
+
+        // Mathematical coordinate lookup (100% reliable on mobile touchscreens)
+        function getSquareFromCoords(clientX, clientY) {
+            const boardEl = document.getElementById('chessBoard');
+            if (!boardEl || typeof clientX !== 'number' || typeof clientY !== 'number') return null;
+            const rect = boardEl.getBoundingClientRect();
+            if (rect.width === 0 || rect.height === 0) return null;
+            if (clientX < rect.left || clientX > rect.right || clientY < rect.top || clientY > rect.bottom) {
+                return null;
+            }
+            const colIdx = Math.min(7, Math.max(0, Math.floor(((clientX - rect.left) / rect.width) * 8)));
+            const rowIdx = Math.min(7, Math.max(0, Math.floor(((clientY - rect.top) / rect.height) * 8)));
+            const r = gameState.boardFlipped ? 7 - rowIdx : rowIdx;
+            const c = gameState.boardFlipped ? 7 - colIdx : colIdx;
+            return { r, c };
+        }
+
+        // Touch & Mouse Drag-and-Drop Optimized for Mobile (Android / iOS) & Desktop
+        function setupTouchAndPointerControls() {
+            const boardEl = document.getElementById('chessBoard');
+            if (!boardEl) return;
+            let dragSource = null;
+            let ghostImg = null;
+
+            const startInteraction = (clientX, clientY, e) => {
+                clearAllDragGhosts();
+                dragSource = null;
+                ghostImg = null;
+
+                if (gameState.gameOver) return;
+                const coords = getSquareFromCoords(clientX, clientY);
+                if (!coords) return;
+                const { r, c } = coords;
+
+                const color = getInteractiveColor();
+                if (gameState.turn !== color) return;
+
+                if (gameState.activeSpell) {
+                    handleSquareClick(r, c);
+                    return;
+                }
+
+                // If a piece is already selected and player taps a valid destination square -> move immediately
+                if (gameState.selectedSq) {
+                    const move = gameState.legalMoves.find(m => m.r === r && m.c === c);
+                    if (move) {
+                        executeStandardMove(gameState.selectedSq.r, gameState.selectedSq.c, r, c);
+                        return;
+                    }
+                }
+
+                const p = gameState.board[r][c];
+                if (p && p.color === color && p.frozen === 0) {
+                    if (e && e.cancelable) e.preventDefault();
+                    gameState.selectedSq = { r, c };
+                    gameState.legalMoves = getLegalMovesForSquare(r, c);
+                    triggerHaptic(8);
+
+                    // Update highlights in-place so the touched DOM node is NOT destroyed!
+                    updateBoardHighlightsInPlace();
+
+                    const sqEl = boardEl.querySelector(`.chess-square[data-r="${r}"][data-c="${c}"]`);
+                    const pieceImg = sqEl ? sqEl.querySelector('.chess-piece-img') : null;
+                    if (pieceImg) pieceImg.classList.add('piece-dragging-source');
+
+                    dragSource = { r, c };
+                    ghostImg = document.createElement('img');
+                    ghostImg.src = getPieceImageUrl(p.color, p.type);
+                    ghostImg.className = 'floating-drag-piece';
+                    ghostImg.style.left = `${clientX}px`;
+                    ghostImg.style.top = `${clientY}px`;
+                    document.body.appendChild(ghostImg);
+                } else {
+                    gameState.selectedSq = null;
+                    gameState.legalMoves = [];
+                    updateBoardHighlightsInPlace();
+                }
+            };
+
+            const moveInteraction = (clientX, clientY, e) => {
+                if (!dragSource || !ghostImg) return;
+                if (e && e.cancelable) e.preventDefault();
+
+                ghostImg.style.left = `${clientX}px`;
+                ghostImg.style.top = `${clientY}px`;
+
+                boardEl.querySelectorAll('.sq-drag-hover').forEach(el => el.classList.remove('sq-drag-hover'));
+                const over = getSquareFromCoords(clientX, clientY);
+                if (over) {
+                    const isLegal = gameState.legalMoves.some(m => m.r === over.r && m.c === over.c);
+                    if (isLegal) {
+                        const sqEl = boardEl.querySelector(`.chess-square[data-r="${over.r}"][data-c="${over.c}"]`);
+                        if (sqEl) sqEl.classList.add('sq-drag-hover');
+                    }
+                }
+            };
+
+            const endInteraction = (clientX, clientY) => {
+                if (!dragSource) {
+                    clearAllDragGhosts();
+                    return;
+                }
+                const src = dragSource;
+                dragSource = null;
+                ghostImg = null;
+                clearAllDragGhosts();
+
+                const dest = getSquareFromCoords(clientX, clientY);
+                if (dest && (dest.r !== src.r || dest.c !== src.c)) {
+                    const valid = gameState.legalMoves.find(m => m.r === dest.r && m.c === dest.c);
+                    if (valid) {
+                        executeStandardMove(src.r, src.c, dest.r, dest.c);
+                    }
+                }
+            };
+
+            // Dedicated Mobile Touch Listeners (passive: false prevents Android gesture cancellation)
+            boardEl.addEventListener('touchstart', (e) => {
+                if (e.touches.length > 0) {
+                    const t = e.touches[0];
+                    startInteraction(t.clientX, t.clientY, e);
+                }
+            }, { passive: false });
+
+            window.addEventListener('touchmove', (e) => {
+                if (!dragSource) return;
+                if (e.touches.length > 0) {
+                    const t = e.touches[0];
+                    moveInteraction(t.clientX, t.clientY, e);
+                }
+            }, { passive: false });
+
+            window.addEventListener('touchend', (e) => {
+                if (!dragSource) return;
+                const t = e.changedTouches && e.changedTouches[0];
+                endInteraction(t ? t.clientX : null, t ? t.clientY : null);
+            }, { passive: false });
+
+            window.addEventListener('touchcancel', () => {
+                dragSource = null;
+                ghostImg = null;
+                clearAllDragGhosts();
+            });
+
+            // Desktop Mouse Listeners
+            boardEl.addEventListener('mousedown', (e) => {
+                if (e.button !== 0) return;
+                startInteraction(e.clientX, e.clientY, e);
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                if (!dragSource) return;
+                moveInteraction(e.clientX, e.clientY, e);
+            });
+
+            window.addEventListener('mouseup', (e) => {
+                if (!dragSource) return;
+                endInteraction(e.clientX, e.clientY);
+            });
+
+            window.addEventListener('blur', clearAllDragGhosts);
+            window.addEventListener('contextmenu', clearAllDragGhosts);
+
+            window.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    closeSpellInspectModal();
+                    if (gameState.activeSpell) cancelSpellTargeting();
+                }
+            });
+        }
+
+        // Online P2P Room Functions (Supports Both Moves & Spells)
+        let peerInstance = null;
+        let p2pConn = null;
+
+        function initHostRoom() {
+            if (typeof Peer === 'undefined') {
+                showToast('PeerJS unavailable offline', 'bg-red-900 border-red-400 text-white');
+                return;
+            }
+            const code = 'IC-' + Math.random().toString(36).substring(2, 6).toUpperCase();
+            peerInstance = new Peer(code);
+            peerInstance.on('open', (id) => {
+                document.getElementById('hostRoomCodeInput').value = id;
+                gameState.myP2PColor = 'w';
+                showToast('Room created! Share code with friend.');
+            });
+            peerInstance.on('connection', (conn) => {
+                p2pConn = conn;
+                setupP2PConnection();
+                showToast('Friend connected! You play White.');
+                initBoardState();
+            });
+        }
+
+        function joinFriendRoom() {
+            const code = document.getElementById('joinRoomCodeInput').value.trim();
+            if (!code || typeof Peer === 'undefined') return;
+            peerInstance = new Peer();
+            peerInstance.on('open', () => {
+                p2pConn = peerInstance.connect(code);
+                gameState.myP2PColor = 'b';
+                gameState.boardFlipped = true;
+                setupP2PConnection();
+                showToast('Connected! You play Black.');
+                initBoardState();
+            });
+        }
+
+        function setupP2PConnection() {
+            if (!p2pConn) return;
+            p2pConn.on('data', (data) => {
+                if (data.type === 'move') {
+                    executeStandardMove(data.fromR, data.fromC, data.toR, data.toC, true);
+                } else if (data.type === 'spell') {
+                    const card = ABILITIES_DB.find(a => a.id === data.cardId);
+                    if (card) {
+                        executeSpellEffect(data.color, card, data.t1, data.t2);
+                        gameState.mana[data.color] = Math.max(0, gameState.mana[data.color] - card.cost);
+                        playSound('spell');
+                        renderAll();
+                    }
+                }
+            });
+        }
+
+        function copyRoomCode() {
+            const input = document.getElementById('hostRoomCodeInput');
+            if (!input || !input.value) return;
+            navigator.clipboard?.writeText(input.value);
+            showToast('Room code copied!');
+        }
+
+        function switchMode(m) {
+            gameState.mode = m;
+            const pill = document.getElementById('mobileModePill');
+            if (pill) pill.textContent = m === 'bot' ? 'Bot' : (m === 'local' ? '2P' : 'Online');
+
+            document.getElementById('botConfigSection').classList.toggle('hidden', m !== 'bot');
+            document.getElementById('p2pConfigSection').classList.toggle('hidden', m !== 'p2p');
+
+            ['Bot', 'Local', 'P2P'].forEach(k => {
+                const btn = document.getElementById('modeBtn' + k);
+                if (btn) {
+                    const active = k.toLowerCase() === m;
+                    btn.className = active
+                        ? 'py-2.5 text-xs font-bold border-b-2 border-[#81b64c] text-white bg-[#262421] transition'
+                        : 'py-2.5 text-xs font-bold border-b-2 border-transparent text-[#989795] hover:text-white transition';
+                }
+            });
+            initBoardState();
+        }
+
+        function flipBoardView() { gameState.boardFlipped = !gameState.boardFlipped; triggerHaptic(10); renderBoard(); }
+        function restartCurrentMode() { triggerHaptic(15); initBoardState(); }
+        function resignGame() { triggerVictory(gameState.turn === 'w' ? 'b' : 'w', 'Opponent resigned.'); }
+
+        function triggerVictory(winner, reason) {
+            gameState.gameOver = true;
+            playSound('victory');
+            triggerHaptic([40, 60, 80]);
+            document.getElementById('victoryTitle').textContent = `${winner === 'w' ? 'WHITE' : 'BLACK'} WINS!`;
+            document.getElementById('victorySubtitle').textContent = reason;
+            document.getElementById('victoryModal').classList.remove('hidden');
+        }
+        function closeVictoryModal() { document.getElementById('victoryModal').classList.add('hidden'); }
+
+        // PWA Manifest & Install Prompt Setup for Android Chrome
+        let deferredInstallPrompt = null;
+        function setupAndroidPWA() {
+            try {
+                const iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192"><rect width="192" height="192" rx="38" fill="#81b64c"/><text x="50%" y="56%" dominant-baseline="middle" text-anchor="middle" fill="#ffffff" font-family="sans-serif" font-weight="900" font-size="88">IC</text></svg>`;
+                const iconUrl = 'data:image/svg+xml;utf8,' + encodeURIComponent(iconSvg);
+
+                const manifest = {
+                    name: 'Illegal Chess — Grandmaster Edition',
+                    short_name: 'Illegal Chess',
+                    start_url: '.',
+                    display: 'standalone',
+                    orientation: 'portrait',
+                    background_color: '#181715',
+                    theme_color: '#181715',
+                    icons: [
+                        { src: iconUrl, sizes: '192x192', type: 'image/svg+xml', purpose: 'any maskable' },
+                        { src: iconUrl, sizes: '512x512', type: 'image/svg+xml', purpose: 'any maskable' }
+                    ]
+                };
+                const blob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
+                document.getElementById('pwaManifestLink').href = URL.createObjectURL(blob);
+            } catch (e) {}
+
+            window.addEventListener('beforeinstallprompt', (e) => {
+                e.preventDefault();
+                deferredInstallPrompt = e;
+                document.getElementById('installAppBtnMobile')?.classList.remove('hidden');
+                document.getElementById('installAppBtnMobile')?.classList.add('flex');
+                document.getElementById('installAppBtnDesktop')?.classList.remove('hidden');
+                document.getElementById('installAppBtnDesktop')?.classList.add('flex');
+            });
+        }
+
+        async function triggerInstallApp() {
+            if (!deferredInstallPrompt) return;
+            deferredInstallPrompt.prompt();
+            await deferredInstallPrompt.userChoice;
+            deferredInstallPrompt = null;
+            document.getElementById('installAppBtnMobile')?.classList.add('hidden');
+            document.getElementById('installAppBtnDesktop')?.classList.add('hidden');
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const dSnd = document.getElementById('soundIconContainer');
+            const mSnd = document.getElementById('soundIconContainerMobile');
+            if (dSnd) dSnd.innerHTML = SVG_ICONS.soundOn;
+            if (mSnd) mSnd.innerHTML = SVG_ICONS.soundOn;
+            setupTouchAndPointerControls();
+            setupAndroidPWA();
+            initBoardState();
+        });
+    </script>
+</body>
+</html>
